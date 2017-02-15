@@ -47,6 +47,7 @@ app.use('/', index);
 
 app.use('/terms', terms);
 app.use('/auth', auth);
+
 app.use('/users', users);
 app.use('/dogs', dogs);
 app.use('/posts', posts);
