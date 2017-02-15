@@ -9,7 +9,7 @@ var winstonlogger = require('./common/logger');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
-var auth = require('./routes/auth');
+var oauth = require('./routes/oauth');
 var terms = require('./routes/terms');
 var dogs = require('./routes/dogs');
 var posts = require('./routes/posts');
@@ -30,6 +30,30 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+var session = require('express-session');
+var passport = require('passport');
+var redis = require('redis');
+var redisClient = redis.createClient();
+var RedisStore = require('connect-redis')(session);
+app.use(session({
+   secret: process.env.SECRET_KEY,
+   store: new RedisStore({
+      host: "127.0.0.1",
+      port: 6379,
+      client: redisClient
+   }),
+   resave: true,
+   saveUninitialized: false,
+   cookie: {
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30 }
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(function(req, res, next) {
@@ -46,7 +70,7 @@ app.use(isSecure);
 app.use('/', index);
 
 app.use('/terms', terms);
-app.use('/auth', auth);
+app.use('/oauth', oauth);
 
 app.use('/users', users);
 app.use('/dogs', dogs);
@@ -70,7 +94,7 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   // render the error page
-  res.status(err.status || 500);
+  // res.status(err.status || 500);
   res.json({
      error: {
         message: err.message,

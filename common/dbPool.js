@@ -3,4 +3,4 @@ var mysql = require('mysql');
 
 var  dbPool = mysql.createPool(dbPoolConfig);
 
-module.exports = dbPool;
+module.exports.dbPool = dbPool;

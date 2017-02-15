@@ -4,13 +4,15 @@ var terms = require('../models/terms');
 
 router.get('/', function(req, res, next) {
    terms.getTerms(function (err, resultData) {
-      if (err)
-         next(err);
-      res.json({
-         result: {
-            data: resultData
-         }
-      })
+      if (err) {
+         return next(err);
+      } else {
+         res.json({
+            result: {
+               data: resultData
+            }
+         });
+      }
    });
 });
 
