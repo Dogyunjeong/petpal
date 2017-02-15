@@ -70,10 +70,9 @@ router.get('/seaters/:page', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -122,10 +121,9 @@ router.get('/users/:page', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -136,7 +134,7 @@ router.get('/users/:page', function(req, res, next) {
 });
 
 router.get('/:reserve_id/response/:status', function(req, res, next) {
-   var resultMsg = "시터 매칭에 성공하였습니다."
+   var resultMsg = "시터 매칭에 성공하였습니다.";
    var errMsg = "매칭 요청에 실패했습니다.";
 
    var reqData = [];
@@ -148,10 +146,9 @@ router.get('/:reserve_id/response/:status', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -162,21 +159,19 @@ router.get('/:reserve_id/response/:status', function(req, res, next) {
 });
 
 router.delete('/:reserve_id', function(req, res, next) {
-   var resultMsg = "예약된 산책 취소에 성공하였습니다."
+   var resultMsg = "예약된 산책 취소에 성공하였습니다.";
    var errMsg = "예약된 산책 취소에 실패했습니다.";
 
    var reqData = [];
    reqData[0] = [":reserve_id ", req.params.reserve_id, "number", 1];
 
-
    dummy(reqData, function (err, result) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,

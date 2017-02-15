@@ -10,32 +10,21 @@ router.post('/', upload.single('image'),function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
-   var imgCheck = {};
-   if(req.file){
-      if(req.file.mimetype) {
-         imgCheck.image = req.file.originalname;
-         imgCheck.type = req.file.mimetype;
-      }
-   } else {
-      imgCheck.image = null;
-      imgCheck.error = "이미지가 정상적으로 전달되지 않았습니다..";
-   }
 
    var reqData = [];
-   reqData[0] = ["mobile ", req.body.mobile, "string", 0];
-   reqData[1] = ["age", req.body.age, "number", 1];
-   reqData[2] = ["gender ", req.body.gender, "number", 1];
-   reqData[3] = ["address ", req.body.address , "string", 0];
+   reqData[0] = ['image', req.file, 'file', 0];
+   reqData[1] = ["mobile ", req.body.mobile, "string", 0];
+   reqData[2] = ["age", req.body.age, "number", 1];
+   reqData[3] = ["gender ", req.body.gender, "number", 1];
+   reqData[4] = ["address ", req.body.address , "string", 0];
 
    dummy(reqData, function (err, result) {
       if (err)
          next(err);
-         result.data.push(imgCheck);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -64,36 +53,25 @@ router.get('/me', function(req, res, next) {
    });
 });
 
-router.put('/', function(req, res, next) {
+router.put('/', upload.single('image'), function(req, res, next) {
    var resultMsg = "회원 정보 변경을 성공했습니다.";
    var errMsg = "회원 정보 변경을 실패했습니다.";
 
-   var imgCheck = {};
-   if(req.file){
-      if(req.file.mimetype) {
-         imgCheck.image = req.file.originalname;
-         imgCheck.type = req.file.mimetype;
-      }
-   } else {
-      imgCheck.image = null;
-      imgCheck.error = "이미지가 정상적으로 전달되지 않았습니다..";
-   }
 
    var reqData = [];
-   reqData[0] = ["mobile ", req.body.mobile, "string", 0];
-   reqData[1] = ["age", req.body.age, "number", 0];
-   reqData[2] = ["gender ", req.body.gender, "number", 0];
-   reqData[3] = ["address ", req.body.address , "string", 0];
+   reqData[0] = ["image", req.file, 'file', 0];
+   reqData[1] = ["mobile ", req.body.mobile, "string", 0];
+   reqData[2] = ["age", req.body.age, "number", 0];
+   reqData[3] = ["gender ", req.body.gender, "number", 0];
+   reqData[4] = ["address ", req.body.address , "string", 0];
 
    dummy(reqData, function (err, result) {
       if (err)
          next(err);
-      result.data.push(imgCheck);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -101,7 +79,7 @@ router.put('/', function(req, res, next) {
          });
       }
    });
-});
+})
 
 router.get('/:user_id', function(req, res, next) {
    res.json({
@@ -144,10 +122,9 @@ router.get('/points/received/:p', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -180,10 +157,9 @@ router.get('/points/used/:p', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,

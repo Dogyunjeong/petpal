@@ -14,10 +14,9 @@ router.post('/:art_id', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,

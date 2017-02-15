@@ -9,17 +9,6 @@ router.post('/', upload.single('image'), function(req, res, next) {
    var resultMsg = "게시글 작성에 성공하였습니다.";
    var errMsg = "게시글 작성에 실패하였습니다.";
 
-   var imgCheck = {};
-   if(req.file){
-      if(req.file.mimetype) {
-         imgCheck.image = req.file.originalname;
-         imgCheck.type = req.file.mimetype;
-      }
-   } else {
-      imgCheck.image = null;
-      imgCheck.error = "이미지가 정상적으로 전달되지 않았습니다..";
-   }
-
    var reqData = [];
    reqData[0] = ["image ", req.file, "file", 1];
    reqData[1] = ["content ", req.body.content, "string", 1];
@@ -30,10 +19,9 @@ router.post('/', upload.single('image'), function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -57,10 +45,9 @@ router.get('/lat/:lat/long/:long/p/:p', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -92,10 +79,9 @@ router.get('/users/:user_id', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -128,10 +114,9 @@ router.get('/:art_id/details', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,

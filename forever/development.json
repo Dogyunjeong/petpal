@@ -1,5 +1,5 @@
 {
-  "uid": "petpal-dev",
+  "uid": "petpal-dummy",
   "append": true,
   "watch": true,
   "script": "./bin/www",

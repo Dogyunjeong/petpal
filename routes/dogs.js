@@ -21,24 +21,23 @@ router.post('/', upload.single('dog_profile_img'), function(req, res, next) {
    }
 
    var reqData = [];
-   reqData[0] = ["dog_name ", req.body.dog_name, "string", 1];
-   reqData[1] = ["dog_gender", req.body.dog_gender, "number", 1];
-   reqData[2] = ["dog_age ", req.body.dog_age, "number", 1];
-   reqData[3] = ["dog_type  ", req.body.dog_type  , "string", 0];
-   reqData[4] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[5] = ["dog_neutralized", req.body.dog_neutralized, "number", 1];
-   reqData[6] = ["dog_characters  ", req.body.dog_characters , "string", 0];
-   reqData[7] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
+   reqData[0] = ["dog_profile_img", req.file, "file", 0];
+   reqData[1] = ["dog_name ", req.body.dog_name, "string", 1];
+   reqData[2] = ["dog_gender", req.body.dog_gender, "number", 1];
+   reqData[3] = ["dog_age ", req.body.dog_age, "number", 1];
+   reqData[4] = ["dog_type  ", req.body.dog_type  , "string", 0];
+   reqData[5] = ["dog_weight  ", req.body.dog_weight , "number", 0];
+   reqData[6] = ["dog_neutralized", req.body.dog_neutralized, "number", 1];
+   reqData[7] = ["dog_characters  ", req.body.dog_characters , "string", 0];
+   reqData[8] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
 
    dummy(reqData, function (err, result) {
       if (err)
          next(err);
-      result.data.push(imgCheck);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -52,37 +51,26 @@ router.put('/:dog_name', upload.single('dog_profile_img'), function(req, res, ne
    var resultMsg = "반려견 정보 등록을 성공했습니다.";
    var errMsg = "반려견 정보 등록을 실패했습니다.";
 
-   var imgCheck = {};
-   if(req.file){
-      if(req.file.mimetype) {
-         imgCheck.image = req.file.originalname;
-         imgCheck.type = req.file.mimetype;
-      }
-   } else {
-      imgCheck.image = null;
-      imgCheck.error = "이미지가 정상적으로 전달되지 않았습니다..";
-   }
 
    var reqData = [];
    reqData[0] = [":dog_name", req.params.dog_name, "string", 1];
-   reqData[1] = ["dog_name ", req.body.dog_name, "string", 0];
-   reqData[2] = ["dog_gender", req.body.dog_gender, "number", 0];
-   reqData[3] = ["dog_age ", req.body.dog_age, "number", 0];
-   reqData[4] = ["dog_type  ", req.body.dog_type  , "string", 0];
-   reqData[5] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[6] = ["dog_neutralized", req.body.dog_neutralized, "number", 0];
-   reqData[7] = ["dog_characters  ", req.body.dog_characters , "string", 0];
-   reqData[8] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
+   reqData[1] = ["dog_profile_img", req.file, "file", 0];
+   reqData[2] = ["dog_name ", req.body.dog_name, "string", 0];
+   reqData[3] = ["dog_gender", req.body.dog_gender, "number", 0];
+   reqData[4] = ["dog_age ", req.body.dog_age, "number", 0];
+   reqData[5] = ["dog_type  ", req.body.dog_type  , "string", 0];
+   reqData[6] = ["dog_weight  ", req.body.dog_weight , "number", 0];
+   reqData[7] = ["dog_neutralized", req.body.dog_neutralized, "number", 0];
+   reqData[8] = ["dog_characters  ", req.body.dog_characters , "string", 0];
+   reqData[9] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
 
    dummy(reqData, function (err, result) {
       if (err)
          next(err);
-      result.data.push(imgCheck);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
@@ -135,11 +123,10 @@ router.get('/:user_id', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
-      } else{
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
+      } else {
          res.json({
             result: resultMsg,
             sentData: result.data
@@ -175,11 +162,10 @@ router.get('/:user_id/dog/:dog_name', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
-      } else{
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
+      } else {
          res.json({
             result: resultMsg,
             sentData: result.data
@@ -201,10 +187,9 @@ router.delete('/:dog_name', function(req, res, next) {
       if (err)
          next(err);
       if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
+         err = new Error(errMsg);
+         err.stack = result;
+         next(err);
       } else {
          res.json({
             result: resultMsg,
