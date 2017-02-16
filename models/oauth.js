@@ -74,5 +74,22 @@ function findKakaoUserAndCreate(reqUser, callback) {
 
 }
 
+function findKakaoUser(kakao_id, callback) {
+   var select_user_for_check = 'select user_id, kakao_id, kakao_token ' +
+                               'from users ' +
+                               'where kakao_id = ?';
+   dbPool.getConnection(function (err, conn) {
+      conn.query(select_user_for_check, kakao_id, function (err, rows) {
+         conn.release();
+         if (rows.length === 0)
+            return callback(err);
+         callback(null, rows[0]);
+      });
+   });
+
+}
+
+
 module.exports.authorizeKakao = authorizeKakao;
 module.exports.findKakaoUserAndCreate = findKakaoUserAndCreate;
+module.exports.findKakaoUser = findKakaoUser;

@@ -4,7 +4,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var isSecure = require('./common/security').isSecure;
+var mySecurity = require('./common/security');
 var winstonlogger = require('./common/logger');
 
 var index = require('./routes/index');
@@ -67,10 +67,8 @@ app.use(function(req, res, next) {
   next();
 });
 
-app.use(isSecure);
-
+app.use(mySecurity.isSecure);
 app.use('/', index);
-
 app.use('/terms', terms);
 app.use('/oauth', oauth);
 

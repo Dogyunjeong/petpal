@@ -6,7 +6,13 @@ var multerS3 = require('multer-s3');
 var AWS = require('aws-sdk');
 var s3Config = require('../config/aws_s3');
 
-var S3 = new AWS.S3(s3Config);
+var User = require('../models/user');
+
+var S3 = new AWS.S3({
+   region : s3Config.region,
+   accessKeyId: s3Config.accessKeyId,
+   secretAccessKey: s3Config.secretAccessKey
+});
 
 var upload = multer({
    storage: multerS3({
@@ -16,81 +22,72 @@ var upload = multer({
          cb(null, {fieldName: file.fieldname});
       },
       key: function (req, file, cb) {
-         cb(null, 'profile/' + file.originaname+ Date.now().toString())
+         cb(null, 'profile/' + Date.now().toString())
       }
    })
 });
 
 /* GET users listing. */
-router.post('/', upload.single('image'), function(req, res, next) {
+router.post('/', upload.single('profile_image'), function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
    if (!req.body.age || !req.body.gender) {
-      var  err = new Error('필수 데이터가 오지 않았습니다.');
+      var  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
-   var postData = {
+   var reqUser = {
+      kakao_id: req.user.kakao_id,
       mobile: req.body.mobile || null,
       age: req.body.age,
       gender: req.body.gender,
       address: req.body.address || null,
-      url: req.file.location || null
+      profile_img_url: req.file.location || null,
+      user_name: req.body.user_name || null
    };
-
-
-
-   var reqData = [];
-   reqData[0] = ['image', req.file, 'file', 0];
-   reqData[1] = ["mobile ", req.body.mobile, "string", 0];
-   reqData[2] = ["age", req.body.age, "number", 1];
-   reqData[3] = ["gender ", req.body.gender, "number", 1];
-   reqData[4] = ["address ", req.body.address , "string", 0];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
+   User.updateUserProfile(reqUser, function (err, user) {
+      if (err) {
+         err.message = errMsg;
+         return next(err);
       } else {
          res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+            result: {
+               message: resultMsg,
+               data: user
+            }
+         })
       }
    });
 });
 
-router.put('/', upload.single('image'), function(req, res, next) {
+router.put('/', upload.single('profile_image'), function(req, res, next) {
    var resultMsg = "회원 정보 변경을 성공했습니다.";
    var errMsg = "회원 정보 변경을 실패했습니다.";
 
-
-   var reqData = [];
-   reqData[0] = ["image", req.file, 'file', 0];
-   reqData[1] = ["mobile ", req.body.mobile, "string", 0];
-   reqData[2] = ["age", req.body.age, "number", 0];
-   reqData[3] = ["gender ", req.body.gender, "number", 0];
-   reqData[4] = ["address ", req.body.address , "string", 0];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
+   var reqUser = {
+      kakao_id: req.user.kakao_id,
+      mobile: req.body.mobile || null,
+      age: req.body.age || null,
+      gender: req.body.gender || null,
+      address: req.body.address || null,
+      profile_img_url: req.file.location || null,
+      user_name: req.body.user_name || null
+   };
+   User.updateUserProfile(reqUser, function (err, user) {
+      if (err) {
+         err.message = errMsg;
+         return next(err);
       } else {
          res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+            result: {
+               message: resultMsg,
+               data: user
+            }
+         })
       }
    });
-})
+});
 
 router.get('/me', function(req, res, next) {
    res.json({

@@ -34,16 +34,17 @@ passport.serializeUser(function (user, done){
 });
 
 passport.deserializeUser(function (kakao_id, done){
-      var user = {};
-      user.kakao_id = kakao_id;
+   Oauth.findKakaoUser(kakao_id, function (err, user) {
+      if (err)
+         return done(err);
       done(null, user);
-
+   });
 });
 
 
 router.post('/kakaotalk/token', function (req, res, next) {
    passport.authenticate('local', function (err, user) {
-      if (err) {
+      if (err || !user) {
          return next(err);
       }
       req.login(user, function (err) {

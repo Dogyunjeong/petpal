@@ -3,11 +3,11 @@ var async = require('async');
 
 // the function to get terms
 function getTerms(callback) {
-   //TODO 1. create select_query
+   // 1. create select_query
    let select_terms = "select * " +
                        "from terms";
    var resultData = {};
-   //TODO 2. get db connection and send query
+   // 2. get db connection and send query
    dbPool.getConnection(function (err, conn) {
       conn.query(select_terms, [], function (err, rows, fields) {
          conn.release();
@@ -22,7 +22,7 @@ function getTerms(callback) {
             return callback(err);
          }
 
-         //TODO 3. arrange data from db for data for res.send
+         // 3. arrange data from db for data for res.send
          async.each(rows, function (row, eachNext) {
             resultData[row.title] = row.term;
             eachNext();
