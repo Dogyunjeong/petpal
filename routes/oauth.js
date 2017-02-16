@@ -42,6 +42,9 @@ passport.deserializeUser(function (kakao_id, done){
 });
 
 
+
+
+
 router.post('/kakaotalk/token', function (req, res, next) {
    passport.authenticate('local', function (err, user) {
       if (err || !user) {

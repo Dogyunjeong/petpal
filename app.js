@@ -72,7 +72,8 @@ app.use('/', index);
 app.use('/terms', terms);
 app.use('/oauth', oauth);
 
-app.use('/users', users);
+app.use(mySecurity.isLoggedIn);
+app.use('/users',  users);
 app.use('/dogs', dogs);
 app.use('/posts', posts);
 app.use('/seaters', seaters);

@@ -81,12 +81,12 @@ function findKakaoUser(kakao_id, callback) {
    dbPool.getConnection(function (err, conn) {
       conn.query(select_user_for_check, kakao_id, function (err, rows) {
          conn.release();
-         if (rows.length === 0)
-            return callback(err);
+         if (rows.length === 0) {
+            return callback(null, kakao_id);
+         }
          callback(null, rows[0]);
       });
    });
-
 }
 
 

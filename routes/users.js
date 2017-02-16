@@ -22,7 +22,7 @@ var upload = multer({
          cb(null, {fieldName: file.fieldname});
       },
       key: function (req, file, cb) {
-         cb(null, 'profile/' + Date.now().toString())
+         cb(null, 'profile/' + file.originalname + Date.now().toString())
       }
    })
 });
@@ -90,39 +90,26 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
 });
 
 router.get('/me', function(req, res, next) {
-   res.json({
-      result: {
-         data: {
-            kakao_id : 1,
-            profile_img_url : "http://abac.ad/add // 프로필 이미지 url",
-            name : "홍길동",
-            age: 29,
-            gender : 2,
-            address : "서울특별시 중랑구 면목동",
-            lat:"41.~~~~",
-            long : "60.~~~~",
-            mobile : "010-1234-5678",
-            points: 1234
-         }
+
+   User.selectUserbyKakaoId(req.user.kakao_id, function (err, user) {
+      if (err || !user) {
+         err.message("자신의 프로필을 불러오는데 실패했습니다.");
+         return next(err);
+      } else {
+         res.json(user);
       }
    });
+
 });
 
 
 router.get('/:user_id', function(req, res, next) {
-   res.json({
-      result: {
-         data: {
-            kakao_id : 222,
-            profile_img_url : "http://dogyunjeong…  // 프로필 이미지 url",
-            name : "이순신",
-            age: 29,
-            gender : 2,
-            address : "서울특별시 중랑구 면목동",
-            lat:"41.~~~~",
-            long : "60.~~~~",
-            mobile : "010-1234-5678"
-         }
+   User.selectUserbyUserId(req.params.user_id, function (err, user) {
+      if (err || !user) {
+         err.message("사용자의 프로필을 불러오는데 실패했습니다.");
+         return next(err);
+      } else {
+         res.json(user);
       }
    });
 });
