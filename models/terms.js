@@ -1,4 +1,4 @@
-var dbPool = require('../common/dbPool').dbPool;
+var dbPool = require('../common/dbPool');
 var async = require('async');
 
 // the function to get terms

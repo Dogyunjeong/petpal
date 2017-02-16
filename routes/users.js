@@ -2,13 +2,43 @@ var express = require('express');
 var router = express.Router();
 var dummy = require('../models/dummy');
 var multer = require('multer');
+var multerS3 = require('multer-s3');
+var AWS = require('aws-sdk');
+var s3Config = require('../config/aws_s3');
 
-var upload = multer({ dest: null});
+var S3 = new AWS.S3(s3Config);
+
+var upload = multer({
+   storage: multerS3({
+      s3: S3,
+      bucket: 'petpaldidimdol',
+      metadata: function (req, file, cb) {
+         cb(null, {fieldName: file.fieldname});
+      },
+      key: function (req, file, cb) {
+         cb(null, 'profile/' + file.originaname+ Date.now().toString())
+      }
+   })
+});
 
 /* GET users listing. */
-router.post('/', upload.single('image'),function(req, res, next) {
+router.post('/', upload.single('image'), function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
+
+   if (!req.body.age || !req.body.gender) {
+      var  err = new Error('필수 데이터가 오지 않았습니다.');
+      err.status = 400;
+      return next(err);
+   }
+   var postData = {
+      mobile: req.body.mobile || null,
+      age: req.body.age,
+      gender: req.body.gender,
+      address: req.body.address || null,
+      url: req.file.location || null
+   };
+
 
 
    var reqData = [];
@@ -31,25 +61,6 @@ router.post('/', upload.single('image'),function(req, res, next) {
             sentData: result.data
          });
       }
-   });
-});
-
-router.get('/me', function(req, res, next) {
-   res.json({
-      result: {
-      data: {
-         id : 1,
-         profile_img_url : "http://abac.ad/add // 프로필 이미지 url",
-         name : "홍길동",
-         age: 29,
-         gender : 2,
-         address : "서울특별시 중랑구 면목동",
-         lat:"41.~~~~",
-         long : "60.~~~~",
-         mobile : "010-1234-5678",
-         points: 1234
-      }
-   }
    });
 });
 
@@ -81,11 +92,31 @@ router.put('/', upload.single('image'), function(req, res, next) {
    });
 })
 
+router.get('/me', function(req, res, next) {
+   res.json({
+      result: {
+         data: {
+            kakao_id : 1,
+            profile_img_url : "http://abac.ad/add // 프로필 이미지 url",
+            name : "홍길동",
+            age: 29,
+            gender : 2,
+            address : "서울특별시 중랑구 면목동",
+            lat:"41.~~~~",
+            long : "60.~~~~",
+            mobile : "010-1234-5678",
+            points: 1234
+         }
+      }
+   });
+});
+
+
 router.get('/:user_id', function(req, res, next) {
    res.json({
       result: {
          data: {
-            id : 222,
+            kakao_id : 222,
             profile_img_url : "http://dogyunjeong…  // 프로필 이미지 url",
             name : "이순신",
             age: 29,
