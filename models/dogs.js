@@ -1,10 +1,11 @@
 var dbPool = require('../common/dbPool');
 var async = require('async');
-var aes_key = process.env.AES_KEY;
 var logger = require('../common/logger');
 
+const aes_key = process.env.AES_KEY;
 
-function insert(insertQuery, insertParams, callback) {
+
+function insertQueryFunction(insertQuery, insertParams, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
@@ -18,6 +19,27 @@ function insert(insertQuery, insertParams, callback) {
    });
 }
 
+// create selectQueryFunction
+function selectQueryFunction(selectQuery, selectParams, callback) {
+   // get db connection
+   dbPool.getConnection(function (err, conn) {
+      // handle error from get db connection
+      if (err)
+         return callback(err);\
+      //send query through conncetion
+      conn.query(selectQuery, selectParams, function (err, rows, fields) {
+         // release connection
+         conn.release();
+         // hand err from seding query
+         if (err)
+            return callback(err);
+         // call the callback
+         callback(null, rows);
+      });
+   });
+}
+
+
 
 
 function insertDogProfile (reqDog, callback) {
@@ -28,7 +50,7 @@ function insertDogProfile (reqDog, callback) {
       reqDog.user_id, reqDog.dog_name, aes_key, reqDog.dog_gender, reqDog.dog_age, reqDog.dog_type,
       reqDog.dog_weight, reqDog.dog_profile_img_url, reqDog.dog_neutralized, reqDog.dog_characters, reqDog.dog_significants
    ];
-   insert(insert_dog_profile_query, insert_dog_profile_params, function (err, result) {
+   insertQueryFunction(insert_dog_profile_query, insert_dog_profile_params, function (err, result) {
       if (err) {
          // 중복된 반려견 이름이 존재할 경우에 대한 err 처리
          if (err.code === "ER_DUP_ENTRY") {
@@ -51,7 +73,10 @@ function insertDogProfile (reqDog, callback) {
 }
 
 function getDogProfile(reqUser_id, callback) {
-   //TODO create select_dog_profile query and select_dog_params
+   //TODO 1. create select_dog_profile query and select_dog_params
+   let
+   //TODO 2. Use selectQueryFunction with query and params of 1
+   //TODO 3. handle error and call the callback
 }
 
 
