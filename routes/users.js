@@ -66,7 +66,7 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
    var errMsg = "회원 정보 변경을 실패했습니다.";
 
    var reqUser = {
-      kakao_id: req.user.kakao_id,
+      user_id: req.user.user_id,
       mobile: req.body.mobile || null,
       age: req.body.age || null,
       gender: req.body.gender || null,
@@ -91,7 +91,7 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
 
 router.get('/me', function(req, res, next) {
 
-   User.selectUserbyKakaoId(req.user.kakao_id, function (err, user) {
+   User.selectUserbyUserId(req.user.user_id, function (err, user) {
       if (err || !user) {
          err.message("자신의 프로필을 불러오는데 실패했습니다.");
          return next(err);
@@ -114,6 +114,8 @@ router.get('/:user_id', function(req, res, next) {
    });
 });
 
+
+//TODO API
 router.get('/points/received/:p', function(req, res, next) {
    var resultMsg =  {
       data:  [
@@ -149,6 +151,7 @@ router.get('/points/received/:p', function(req, res, next) {
    });
 });
 
+//TODO API
 router.get('/points/used/:p', function(req, res, next) {
    var resultMsg =  {
       data:  [

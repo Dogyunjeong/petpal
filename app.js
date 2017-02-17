@@ -4,8 +4,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var mySecurity = require('./common/security');
-var winstonlogger = require('./common/logger');
+var app = express();
 
 var index = require('./routes/index');
 var users = require('./routes/users');
@@ -18,7 +17,14 @@ var reserves = require('./routes/reserves');
 var reviews = require('./routes/reviews');
 var reports = require('./routes/reports');
 
-var app = express();
+var mySecurity = require('./common/security');
+var winstonlogger = require('./common/logger');
+var incomingCheck = require('./models/incomingCheck');
+
+
+
+
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -58,14 +64,7 @@ app.use(passport.session());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(function(req, res, next) {
-  winstonlogger.log('debug', 'access url :  %s', req.originalUrl);
-  if (Object.keys(req.params).length > 0)
-      winstonlogger.log('debug', 'params     :  %j', req.params);
-  if (Object.keys(req.body).length > 0)
-      winstonlogger.log('debug', 'body       :  %j', req.body);
-  next();
-});
+app.use(incomingCheck);
 
 app.use(mySecurity.isSecure);
 app.use('/', index);

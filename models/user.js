@@ -49,40 +49,27 @@ function updateUserProfile(reqUser, callback) {
          });
       }
       // 4. start beginTransaction and use async.waterfall with functions of 3
-      conn.beginTransaction(function (err) {
-         async.waterfall([selectUserProfile, updateUserProfile], function (err, result) {
-            // 5. hnadle error
-            if (err){
-               // 6. call the callback(err) after rollback and release connection
-               conn.rollback(function () {
-                  conn.release();
-                  return callback(err);
-               });
-            } else {
-               // 7. call the callback(err, user) after commit and release connection
-               conn.commit(function () {
-                  conn.release();
-                  if (reqUser.prev_profile_img_url) {
-                     S3.deleteObject({
-                        Bucket: s3Bucket,
-                        Key:
-                     }, function (err) {
-                        if (err)
-                           logger.log('info', 'Failed: delete S3 object:', reqUser.prev_profile_img_url)
-                     })
-                  }
+      async.waterfall([selectUserProfile, updateUserProfile], function (err, result) {
+         // 5. hnadle error
+         if (err){
+            conn.release();
+            return callback(err);
+         } else {
+            // 7. call the callback(err, user) afterrelease connection
+            conn.release();
+            if (reqUser.prev_profile_img_url) {
+               S3.deleteObject({
+                  Bucket: s3Bucket,
+                  Key: reqUser.prev_profile_img_url.split('com/')[1]
+               }, function (err) {
+                  if (err)
+                     logger.log('info', 'Failed: delete S3 object:', reqUser.prev_profile_img_url);
                   callback(null, reqUser);
-               })
+               });
             }
-
-
-         });
+         }
       });
-
    });
-
-
-
 }
 
 function selectUserbyKakaoId(kakao_id, callback) {

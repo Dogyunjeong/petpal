@@ -1,12 +1,15 @@
 var express = require('express');
 var router = express.Router();
 var multer = require('multer');
-var dummy = require('../models/dummy');
 var multerS3 = require('multer-s3');
 var AWS = require('aws-sdk');
 var s3Config = require('../config/aws_s3');
+var logger = require('../common/logger');
+var incomingCheck = require('../models/incomingCheck');
 
 var Dog = require('../models/dogs');
+
+var dummy = require('../models/dummy');
 
 var S3 = new AWS.S3({
    region : s3Config.region,
@@ -27,84 +30,61 @@ var upload = multer({
    })
 });
 
-router.post('/', upload.single('dog_profile_img'), function(req, res, next) {
-
+router.post('/', upload.single('dog_profile_img'), incomingCheck, function(req, res, next) {
 
    var resultMsg = "반려견 정보 등록을 성공했습니다.";
    var errMsg = "반려견 정보 등록을 실패했습니다.";
 
-   var imgCheck = {};
-   if(req.file){
-      if(req.file.mimetype) {
-         imgCheck.image = req.file.originalname;
-         imgCheck.type = req.file.mimetype;
-      }
-   } else {
-      imgCheck.image = null;
-      imgCheck.error = "이미지가 정상적으로 전달되지 않았습니다..";
+   if (!req.body.dog_name || !req.body.dog_gender || !req.body.dog_age || !req.body.dog_neutralized) {
+      var  err = new Error("필수 데이터가 오지 않았습니다.");
+      err.status = 400;
+      return next(err);
    }
+   // Insert query에 맞게 세팅된 값.
+   // var reqDog = [
+   //    req.user.user_id,
+   //    req.body.dog_name || null,
+   //    req.body.dog_gender,
+   //    req.body.dog_age || null,
+   //    req.body.dog_type || null,
+   //    req.body.dog_weight || null,
+   //    req.file.location || null,
+   //    req.body.dog_neutralized,
+   //    req.body.dog_characters || null,
+   //    req.body.dog_significants || null
+   // ];
 
-   var reqData = [];
-   reqData[0] = ["dog_profile_img", req.file, "file", 0];
-   reqData[1] = ["dog_name ", req.body.dog_name, "string", 1];
-   reqData[2] = ["dog_gender", req.body.dog_gender, "number", 1];
-   reqData[3] = ["dog_age ", req.body.dog_age, "number", 1];
-   reqData[4] = ["dog_type  ", req.body.dog_type  , "string", 0];
-   reqData[5] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[6] = ["dog_neutralized", req.body.dog_neutralized, "number", 1];
-   reqData[7] = ["dog_characters  ", req.body.dog_characters , "string", 0];
-   reqData[8] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+   var reqDog = {
+      user_id: req.user.user_id,
+      dog_profile_img_url: req.file.location || null,
+      dog_name: req.body.dog_name || null,
+      dog_gender: req.body.dog_gender ,
+      dog_age: req.body.dog_age || null ,
+      dog_type: req.body.dog_type || null ,
+      dog_weight: req.body.dog_weight || null ,
+      dog_neutralized: req.body.dog_neutralized ,
+      dog_characters: req.body.dog_characters || null ,
+      dog_significants: req.body.dog_significants || null
+   };
+   //DB data를 입력하기 위한 함수
+   Dog.insertDogProfile(reqDog, function (err, result) {
+      if (err) {
+         return next(err);
       }
-   });
-});
-
-router.put('/:dog_name', upload.single('dog_profile_img'), function(req, res, next) {
-   var resultMsg = "반려견 정보 등록을 성공했습니다.";
-   var errMsg = "반려견 정보 등록을 실패했습니다.";
-
-
-   var reqData = [];
-   reqData[0] = [":dog_name", req.params.dog_name, "string", 1];
-   reqData[1] = ["dog_profile_img", req.file, "file", 0];
-   reqData[2] = ["dog_name ", req.body.dog_name, "string", 0];
-   reqData[3] = ["dog_gender", req.body.dog_gender, "number", 0];
-   reqData[4] = ["dog_age ", req.body.dog_age, "number", 0];
-   reqData[5] = ["dog_type  ", req.body.dog_type  , "string", 0];
-   reqData[6] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[7] = ["dog_neutralized", req.body.dog_neutralized, "number", 0];
-   reqData[8] = ["dog_characters  ", req.body.dog_characters , "string", 0];
-   reqData[9] = ["dog_significant   ", req.body.dog_significant   , "string", 0];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
+      res.json({
+         result : "반려견 정보 등록에 성공했습니다",
+         devLevelData: result
          });
-      }
    });
+
 });
 
 router.get('/mine', function(req, res, next) {
+
+   Dog.getDogProfile(req.user.id, function (err, result) {
+      if (err)
+         return callback(err);
+   });
    res.json({
       result: {
          user_id: 1,
@@ -157,6 +137,31 @@ router.get('/:user_id', function(req, res, next) {
          });
       }
    });
+});
+
+router.put('/:dog_name', upload.single('dog_profile_img'), function(req, res, next) {
+
+   var reqDog = {
+      user_id: req.user.user_id || null,
+      dog_profile_img_url: req.file.location || null,
+      dog_name: req.body.dog_name || null,
+      dog_gender: req.body.dog_gender || null,
+      dog_age: req.body.dog_age || null ,
+      dog_type: req.body.dog_type || null ,
+      dog_weight: req.body.dog_weight || null ,
+      dog_neutralized: req.body.dog_neutralized ,
+      dog_characters: req.body.dog_characters || null ,
+      dog_significants: req.body.dog_significants || null
+   };
+
+   Dog.updatedDogProfile(reqDog, function (err, result) {
+      if (err)
+         return next(err);
+      res.json({
+         result: "반려견 정보 변경에 성공했습니다."
+      })
+   })
+
 });
 
 router.get('/:user_id/dog/:dog_name', function(req, res, next) {
