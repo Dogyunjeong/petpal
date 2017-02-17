@@ -38,7 +38,7 @@ router.post('/', upload.single('profile_image'), function(req, res, next) {
       return next(err);
    }
    var reqUser = {
-      kakao_id: req.user.kakao_id,
+      user_id: req.user.user_id,
       mobile: req.body.mobile || null,
       age: req.body.age,
       gender: req.body.gender,

@@ -1,4 +1,4 @@
-var dbPool = require('../common/dbPool');
-var async = require('async');
-
-function insertDog
+// var dbPool = require('../common/dbPool');
+// var async = require('async');
+//
+// function insertDog

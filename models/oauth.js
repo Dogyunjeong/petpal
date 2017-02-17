@@ -2,10 +2,32 @@ var dbPool = require('../common/dbPool');
 var async = require('async');
 
 function authorizeKakao(kakao_id, kakao_token, callback) {
-   var user = {};
-   user.kakao_id = kakao_id;
-   user.kakao_token = kakao_token;
-   callback(null, user);
+
+
+   var select_user_for_check = 'select user_id ' +
+      'from users ' +
+      'where kakao_id = ?';
+
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return next(err);
+      conn.query(select_user_for_check, [kakao_id ], function (err, rows, fields) {
+         conn.release();
+         if (err) {
+            return callback(err);
+         }
+         if (rows.length === 1) {
+            var user = {};
+            user.kakao_id = kakao_id;
+            user.kakao_token = kakao_token;
+            user.user_id = rows[0].user_id;
+            return callback(null, user);
+         } else {
+            // if user is not exist, set user.reqJoinFlag = 1 or null
+            callback(err);
+         }
+      });
+   });
 }
 
 function findKakaoUserAndCreate(reqUser, callback) {
@@ -34,6 +56,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
                return nextCallback(err);
             }
             if(rows.length === 1){
+               reqUser.user_id = rows[0].user_id;
                queryData.query = update_user_kakao_info;
                queryData.parameters = [reqUser.kakao_token, reqUser.kakao_img_url, rows[0].user_id];
                return nextCallback(null, queryData);
@@ -51,6 +74,8 @@ function findKakaoUserAndCreate(reqUser, callback) {
          conn.query(queryData.query, queryData.parameters, function (err, rows) {
             if (err || rows.affectedRows == 0)
                return nextCallback(err);
+            if (rows.insultId)
+               reqUser.user_id = rows.insultId;
             nextCallback(null, reqUser);
          });
       }

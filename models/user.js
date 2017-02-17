@@ -1,6 +1,13 @@
 var dbPool = require('../common/dbPool');
 var async = require('async');
+var AWS = require('aws-sdk');
+var s3Config = require('../config/aws_s3');
+var logger = require('../common/logger');
+
 var aes_key = process.env.AES_KEY;
+var s3Bucket = process.env.S3_BUCKET;
+
+var S3 = new AWS.S3(s3Config);
 
 function updateUserProfile(reqUser, callback) {
    // 1. create select_user and update_user
@@ -8,21 +15,21 @@ function updateUserProfile(reqUser, callback) {
                              'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile, ' +
                               'age, gender, address, profile_img_url ' +
                              'from users ' +
-                             'where kakao_id = ?';
+                             'where user_id = ?';
    var update_user_profile = 'update users ' +
                               'set user_name=aes_encrypt(?, unhex(sha2(?, 512))), ' +
                               'mobile= aes_encrypt(?, unhex(sha2(?, 512))), age = ?, gender = ?, address = ?, profile_img_url = ? ' +
                               'where user_id = ?';
-   var resUser
 
    // 2. get db conncetion
    dbPool.getConnection(function (err, conn) {
       // 3. create selectUser function(prepare update User data) and updateUser function
       function selectUserProfile(nextCallback) {
-         conn.query(select_user_profile, [aes_key, aes_key, reqUser.kakao_id], function (err, rows) {
+         conn.query(select_user_profile, [aes_key, aes_key, reqUser.user_id], function (err, rows) {
             if (err || rows.length === 0)
                return nextCallback(err);
             reqUser.user_id = rows[0].user_id;
+            reqUser.prev_profile_img_url = rows[0].profile_img_url || null;
             async.eachOf(reqUser, function (key, prop, eachCallback) {
                if(!reqUser[prop])
                   reqUser[prop] = rows[0][prop];
@@ -41,17 +48,37 @@ function updateUserProfile(reqUser, callback) {
             nextCallback(null, rows[0]);
          });
       }
-      // 4. use async.waterfall with functions of 3
-      async.waterfall([selectUserProfile, updateUserProfile], function (err, result) {
-         // 5. release db connection
-         conn.release();
-         // 6. hnadle error
-         if (err){
-            return callback(err);
-         }
-         // 7. call the callback(err, user)
-         callback(null, reqUser);
+      // 4. start beginTransaction and use async.waterfall with functions of 3
+      conn.beginTransaction(function (err) {
+         async.waterfall([selectUserProfile, updateUserProfile], function (err, result) {
+            // 5. hnadle error
+            if (err){
+               // 6. call the callback(err) after rollback and release connection
+               conn.rollback(function () {
+                  conn.release();
+                  return callback(err);
+               });
+            } else {
+               // 7. call the callback(err, user) after commit and release connection
+               conn.commit(function () {
+                  conn.release();
+                  if (reqUser.prev_profile_img_url) {
+                     S3.deleteObject({
+                        Bucket: s3Bucket,
+                        Key:
+                     }, function (err) {
+                        if (err)
+                           logger.log('info', 'Failed: delete S3 object:', reqUser.prev_profile_img_url)
+                     })
+                  }
+                  callback(null, reqUser);
+               })
+            }
+
+
+         });
       });
+
    });
 
 

@@ -41,34 +41,15 @@ passport.deserializeUser(function (kakao_id, done){
    });
 });
 
-
-
-
-
 router.post('/kakaotalk/token', function (req, res, next) {
-   passport.authenticate('local', function (err, user) {
-      if (err || !user) {
-         return next(err);
-      }
-      req.login(user, function (err) {
-         if (err) {
-            return next(err);
-         }
-         next();
-      });
-   })(req, res, next);
-}, function (req, res, next) {
-   var resultMsg = "회원 가입이 필요한 사용자입니다.";
-   var errMsg = "회원가입 및 로그인에 실패하였습니다.";
-
-   if (!req.user.kakao_id || !req.user.kakao_token || !req.body.kakao_img_url ){
+   if (!req.body.kakao_id || !req.body.kakao_token || !req.body.kakao_img_url ){
       var  err = new Error('필수 데이터가 오지 않았습니다.');
       err.status = 400;
       return next(err);
    }
    var reqUser = {
-      kakao_id: req.user.kakao_id,
-      kakao_token: req.user.kakao_token,
+      kakao_id: req.body.kakao_id,
+      kakao_token: req.body.kakao_token,
       kakao_img_url: req.body.kakao_img_url
    };
 
@@ -76,19 +57,39 @@ router.post('/kakaotalk/token', function (req, res, next) {
       if (err)
          next(err);
       if (user.reqJoinFlag) {
-         res.status(201).json({
-            result : {
-               message: "회원 가입이 필요한 사용자입니다."
-            }
-         });
-      } else {
-         res.json({
-            result : {
-               message: "등록된 사용자입니다."
-            }
-         });
+         req.body.reqJoinFlag = user.reqJoinFlag;
+         req.body.user_id = user.user_id;
       }
+      passport.authenticate('local', function (err, user) {
+         if (err || !user) {
+            return next(err);
+         }
+         req.login(user, function (err) {
+            if (err) {
+               return next(err);
+            }
+            next();
+         });
+      })(req, res, next);
    });
+
+}, function (req, res, next) {
+   var resultMsg = "회원 가입이 필요한 사용자입니다.";
+   var errMsg = "회원가입 및 로그인에 실패하였습니다.";
+
+   if (req.body.reqJoinFlag) {
+      res.status(201).json({
+         result : {
+            message: "회원 가입이 필요한 사용자입니다."
+         }
+      });
+   } else {
+      res.json({
+         result : {
+            message: "등록된 사용자입니다."
+         }
+      });
+   }
 });
 
 
