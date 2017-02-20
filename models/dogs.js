@@ -200,7 +200,7 @@ function deleteDogProfile(reqDog, callback) {
    });
 
 }
-
+;
 
 module.exports.insertDogProfile = insertDogProfile;
 module.exports.selectUserDogsProfile = selectUserDogsProfile;
