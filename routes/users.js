@@ -1,12 +1,13 @@
 var express = require('express');
-var router = express.Router();
-var dummy = require('../models/dummy');
 var multer = require('multer');
 var multerS3 = require('multer-s3');
 var AWS = require('aws-sdk');
-var s3Config = require('../config/aws_s3');
+var router = express.Router();
 
+var s3Config = require('../config/aws_s3');
+var dummy = require('../models/dummy');
 var User = require('../models/user');
+var incomingCheck = require('../models/incomingCheck');
 
 var S3 = new AWS.S3({
    region : s3Config.region,
@@ -28,7 +29,7 @@ var upload = multer({
 });
 
 /* GET users listing. */
-router.post('/', upload.single('profile_image'), function(req, res, next) {
+router.post('/', upload.single('profile_image'), incomingCheck, function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
@@ -37,6 +38,8 @@ router.post('/', upload.single('profile_image'), function(req, res, next) {
       err.status = 400;
       return next(err);
    }
+   if (!req.file)
+      req.file = {location: null}
    var reqUser = {
       user_id: req.user.user_id,
       mobile: req.body.mobile || null,
@@ -64,6 +67,9 @@ router.post('/', upload.single('profile_image'), function(req, res, next) {
 router.put('/', upload.single('profile_image'), function(req, res, next) {
    var resultMsg = "회원 정보 변경을 성공했습니다.";
    var errMsg = "회원 정보 변경을 실패했습니다.";
+
+   if (!req.file)
+      req.file ={location: null};
 
    var reqUser = {
       user_id: req.user.user_id,

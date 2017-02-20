@@ -1,6 +1,6 @@
 var winstonlogger = require('../common/logger');
 
-function incominbCheck(req, res, next) {
+function incomingCheck(req, res, next) {
    winstonlogger.log('debug', 'access url :  %s', req.originalUrl);
    if (Object.keys(req.params).length > 0)
       winstonlogger.log('debug', 'params     :  %j', req.params);
@@ -11,4 +11,4 @@ function incominbCheck(req, res, next) {
    next();
 }
 
-module.exports = incominbCheck;
+module.exports = incomingCheck;

@@ -43,7 +43,7 @@ function updateUserProfile(reqUser, callback) {
       }
       function updateUserProfile(nextCallback) {
          conn.query(update_user_profile, [reqUser.user_name, aes_key, reqUser.mobile, aes_key, reqUser.age, reqUser.gender, reqUser.address, reqUser.profile_img_url, reqUser.user_id], function (err, rows, fields) {
-            if (err || rows.affectedRows === 0)
+            if (err || rows.affectedRows !== 0)
                return nextCallback(err);
             nextCallback(null, rows[0]);
          });
@@ -63,7 +63,7 @@ function updateUserProfile(reqUser, callback) {
                   Key: reqUser.prev_profile_img_url.split('com/')[1]
                }, function (err) {
                   if (err)
-                     logger.log('info', 'Failed: delete S3 object:', reqUser.prev_profile_img_url);
+                     logger.log('info', 'Failed: delete S3 object in profile:', reqUser.prev_profile_img_url);
                   callback(null, reqUser);
                });
             }
