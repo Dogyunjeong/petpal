@@ -7,15 +7,13 @@ var s3Config = require('../config/aws_s3');
 var logger = require('../common/logger');
 var incomingCheck = require('../models/incomingCheck');
 
-var Dog = require('../models/dogs');
-var dummy = require('../models/dummy');
+var Dog = require('../models/dog');
 
 var S3 = new AWS.S3({
    region : s3Config.region,
    accessKeyId: s3Config.accessKeyId,
    secretAccessKey: s3Config.secretAccessKey
 });
-
 var upload = multer({
    storage: multerS3({
       s3: S3,
@@ -159,8 +157,6 @@ router.delete('/:dog_name', function(req, res, next) {
       res.json({
          result: "반려견 정보 삭제에 성공했습니다."
       });
-
-
    });
 });
 

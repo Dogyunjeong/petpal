@@ -16,7 +16,9 @@ router.post('/:reserve_id', function(req, res, next) {
          next(err);
       if (result.errFlag > 0) {
          err = new Error(errMsg);
-         err.stack = result;
+         err.stack = {
+            result:result
+         };
          next(err);
       } else {
          res.json({

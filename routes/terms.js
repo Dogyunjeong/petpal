@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var terms = require('../models/terms');
+var terms = require('../models/term');
 
 router.get('/', function(req, res, next) {
    terms.getTerms(function (err, resultData) {
