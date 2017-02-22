@@ -33,11 +33,11 @@ function selectArticles(reqData, callback) {
       'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "lat", st_x(art_pos) as "longitude", num_likes ' +
       '      from articles ' +
       '      where mbrcontains(envelope(linestring(' +
-      '            point(round((? + (? / abs(cos(radians(?)) * 111.2))), 6), round((?+(?/111)), 6)), ' +
-      '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111)), 6)))), art_pos) ' +
-      '      order by art_id desc' +
+      '            point(round((? + (? / abs(cos(radians(?)) * 111.2))), 6), round((?+(?/111.2)), 6)), ' +
+      '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111.2)), 6)))), art_pos) ' +
       '      limit ?, ?) as art ' +
-      '      left outer join users as u on (art.user_id = u.user_id) ';
+      '      left outer join users as u on (art.user_id = u.user_id) ' +
+      'order by art_id desc';
    let selectParams = [aes_key, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.limit.former, reqData.limit.latter];
 
    QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {

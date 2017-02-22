@@ -3,7 +3,7 @@ var router = express.Router();
 var dummy = require('../models/dummy');
 var Seater = require('../models/seater');
 
-router.post('/', function(req, res, next) {
+router.post('/', function (req, res, next) {
    // check required data is coming then make object to send
    if (!req.body.stroll_pos_lat || !req.body.stroll_pos_lat || !req.body.from_time || ! req.body.to_time) {
       var err = new Error('필수 정보가 입력되지 않았습니다.');
@@ -11,7 +11,7 @@ router.post('/', function(req, res, next) {
       return next(err);
    }
    let reqSeater = {
-      user_id: req.user.user_id,
+      stroll_user_id: req.user.user_id,
       stroll_pos_lat: req.body.stroll_pos_lat,
       stroll_pos_long: req.body.stroll_pos_long,
       from_time: req.body.from_time,
@@ -38,7 +38,29 @@ router.post('/', function(req, res, next) {
 
 });
 
-router.put('/:stroll_id', function(req, res, next) {
+router.get('/me', function (req, res, next) {
+   let reqSeater = {
+      stroll_user_id: req.user.user_id,
+      p: req.query.p || 0,
+      limit: {
+         former: (req.query.p - 1) * 20 || 0,
+         latter: 20
+      }
+   }
+
+   Seater.selectSeater(reqSeater, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            data: rows
+         }
+      });
+   });
+
+});
+
+router.put('/:stroll_id', function (req, res, next) {
 
    let reqSeater = {
       stroll_user_id: req.user.user_id || null,
@@ -62,30 +84,24 @@ router.put('/:stroll_id', function(req, res, next) {
 
 });
 
-router.delete('/:stroll_id', function(req, res, next) {
-   var resultMsg = "시터 정보 삭제에 성공하였습니다.";
-   var errMsg = "시터 정보 삭제에 실패했습니다.";
+router.delete('/:stroll_id', function (req, res, next) {
+   let reqSeater = {
+      stroll_user_id: req.user.user_id,
+      stroll_id: req.params.stroll_id
+   };
 
-   var reqData = [];
-   reqData[0] = [":stroll_id ", req.params.stroll_id, "number", 1];
-
-   dummy(reqData, function (err, result) {
+   Seater.deleteSeater(reqSeater, function (err, result) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+         result: '시터 정보 삭제에성공하였습니다.'
+      });
    });
+
+
 });
 
-router.get('/lat/:lat/long/:long/p/:p', function(req, res, next) {
+router.get('/lat/:lat/long/:long', function (req, res, next) {
    var resultMsg = {
       data: [
          {
