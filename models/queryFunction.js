@@ -1,4 +1,5 @@
 var dbPool = require('./../common/dbPool');
+var async = require('async');
 
 function insertQueryFunction(insertQuery, insertParams, callback) {
    dbPool.getConnection(function (err, conn) {
@@ -109,7 +110,57 @@ function deleteQueryFunction(query, params, callback) {
 
 }
 
+function checkForInsert(query, params, callback) {
+   // 1. DB 커넥션 획득
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+      // 2. Begin Transaction to rollback if there is result of selectQuery
+       function checkFunction(cb) {
+         selectQueryFunction(query.selectQuery, params.selectParams, function (err, rows) {
+            if (err)
+               return cb(err);
+            if(rows.length) {
+               err = new Error();
+               err.status = 400;
+               cb(err, rows);
+            } else {
+               cb(null, null);
+            }
+         });
+      }
+
+      function insertFunction(cb) {
+         insertQueryFunction(query.insertQuery, params.insertParams, function (err, result) {
+            if (err)
+               return cb(err);
+            cb(null, result);
+         });
+      }
+
+      function seriesCallback(err, result) {
+         // 4. If selectQueryFunction returns result and there is an error, rollback. and send err
+         if (err) {
+            conn.rollback(function () {
+               conn.release();
+               return callback(err, result.one);
+            });
+         } else {
+            // 5. Otherwise commit then release and send result of insert
+            conn.commit(function () {
+               conn.release();
+               callback(null, result.two);
+            });
+         }
+      }
+      // 3. Use async.parallel to select and insert.
+      async.series({ one: checkFunction, two: insertFunction }, seriesCallback);
+
+   });
+}
+
 module.exports.insertQueryFunction = insertQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
 module.exports.updateQueryFunction = updateQueryFunction;
 module.exports.deleteQueryFunction = deleteQueryFunction;
+module.exports.checkForInsert = checkForInsert;

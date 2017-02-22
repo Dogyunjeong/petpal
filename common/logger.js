@@ -28,7 +28,7 @@ var logger = new winston.Logger({
       dirname: path.join(__dirname, '../logs'),
       filename: 'debug_logs_',
       datePattern: 'yyyy-MM-ddTHH.log', // THH 시각 패턴, 매 시간마다 생성. 일자별 'yyyy-MM-dd.log'
-      maxsize: 1024 * 1024,  // 1MB 만큼만 찍겠다는 것, 이것을 넘으면 자동으로 시리얼 넘버가 붙음.
+      maxsize: 1024 * 1024 * 10,  // 10MB 만큼만 찍겠다는 것, 이것을 넘으면 자동으로 시리얼 넘버가 붙음.
       json: false  // log를 json형태로 저장할 수도 있음.
     })
   ],
@@ -44,7 +44,7 @@ var logger = new winston.Logger({
       dirname: path.join(__dirname, '../logs'),
       filename: 'exception_logs_',
       datePattern: 'yyyy-MM-ddTHH.log',
-      maxsize: 1024 * 1024,
+      maxsize: 1024 * 1024 * 10,
       json: false,
       handleExceptions: true,
       humanReadableUnhandledException: true

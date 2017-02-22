@@ -23,13 +23,12 @@ router.post('/', function(req, res, next) {
 
    Seater.insertSeater(reqSeater, function (err, rows) {
       if (err){
-         if (err.code = "ER_DUP_ENTRY"){
-            err.status = 400;
+         if (err.status = 400){
+            return next(err);
+         } else {
+            err.message ='시터 등록에 실패했습니다.';
+            return next(err);
          }
-         err.message ='시터 등록에 실패했습니다.';
-         return next(err);
-
-
       } else {
          res.json({
             result: '시터 등록에 성공하였습니다.'
@@ -40,33 +39,27 @@ router.post('/', function(req, res, next) {
 });
 
 router.put('/:stroll_id', function(req, res, next) {
-   var resultMsg = "시터 정보 변경에 성공하였습니다.";
-   var errMsg = "시터 정보 변경에 실패했습니다.";
 
-   var reqData = [];
-   reqData[0] = [":stroll_id ", req.params.stroll_id, "number", 1];
-   reqData[1] = ["stroll_pos_lat ", req.body.stroll_pos_lat, "number", 0];
-   reqData[2] = ["stroll_pos_long", req.body.stroll_pos_long, "number", 0];
-   reqData[3] = ["from_time ", req.body.from_time, "string", 0];
-   reqData[4] = ["to_time ", req.body.to_time , "string", 0];
-   reqData[5] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[6] = ["dog_gender  ", req.body.dog_gender  , "number", 0];
-   reqData[7] = ["dog_neutralized  ", req.body.dog_neutralized , "number", 0];
+   let reqSeater = {
+      stroll_user_id: req.user.user_id || null,
+      stroll_id: req.params.stroll_id,
+      stroll_pos_lat: req.body.stroll_pos_lat || null,
+      stroll_pos_long: req.body.stroll_pos_long || null,
+      from_time: req.body.from_time || null,
+      to_time: req.body.to_time || null,
+      dog_weight: req.body.dog_weight || null,
+      dog_gender: req.body.dog_gender || null,
+      dog_neutralized: req.body.dog_neutralized || null
+   };
 
-   dummy(reqData, function (err, result) {
+   Seater.updateSeater(reqSeater, function (err, row) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+           result: '시터 정보 변경에 성공하였습니다.'
+      });
    });
+
 });
 
 router.delete('/:stroll_id', function(req, res, next) {
