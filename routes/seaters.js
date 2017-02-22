@@ -1,34 +1,36 @@
 var express = require('express');
 var router = express.Router();
 var dummy = require('../models/dummy');
+var Seater = require('../models/seater');
 
 router.post('/', function(req, res, next) {
-   var resultMsg = "시터 등록에 성공하였습니다.";
-   var errMsg = "시터 등록에 실패했습니다.";
+   // check required data is coming then make object to send
+   if (!req.body.stroll_pos_lat || !req.body.stroll_pos_lat || !req.body.from_time || ! req.body.to_time) {
+      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      err.status = 400;
+      return next(err);
+   }
+   let reqSeater = {
+      user_id: req.user.user_id,
+      stroll_pos_lat: req.body.stroll_pos_lat,
+      stroll_pos_long: req.body.stroll_pos_long,
+      from_time: req.body.from_time,
+      to_time: req.body.to_time,
+      dog_weight: req.body.dog_weight || null,
+      dog_gender: req.body.dog_gender || null,
+      dog_neutralized: req.body.dog_neutralized || null
+   };
 
-   var reqData = [];
-   reqData[0] = ["stroll_pos_lat ", req.body.stroll_pos_lat, "number", 1];
-   reqData[1] = ["stroll_pos_long", req.body.stroll_pos_long, "number", 1];
-   reqData[2] = ["from_time ", req.body.from_time, "string", 1];
-   reqData[3] = ["to_time ", req.body.to_time , "string", 1];
-   reqData[4] = ["dog_weight  ", req.body.dog_weight , "number", 0];
-   reqData[5] = ["dog_gender  ", req.body.dog_gender  , "number", 0];
-   reqData[6] = ["dog_neutralized  ", req.body.dog_neutralized , "number", 0];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+   Seater.insertSeater(reqSeater, function (err, rows) {
+      if (err){
+         err.message('시터 등록에 실패했습니다.');
+         return next(err);
       }
+      res.json({
+         result: '시터 등록에 성공하였습니다.'
+      });
    });
+
 });
 
 router.put('/:stroll_id', function(req, res, next) {

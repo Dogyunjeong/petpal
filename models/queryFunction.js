@@ -1,4 +1,4 @@
-var dbPool = require('./dbPool');
+var dbPool = require('./../common/dbPool');
 
 function insertQueryFunction(insertQuery, insertParams, callback) {
    dbPool.getConnection(function (err, conn) {

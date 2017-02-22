@@ -1,9 +1,7 @@
 var async = require('async');
 
-
 var dbPool = require('../common/dbPool');
 var logger = require('../common/logger');
-
 
 var s3Config = require('../config/aws_s3');
 var AWS = require('aws-sdk');

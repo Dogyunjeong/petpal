@@ -3,7 +3,7 @@ var AWS = require('aws-sdk');
 var s3Config = require('../config/aws_s3');
 var dbPool = require('../common/dbPool');
 var logger = require('../common/logger');
-var QueryFn = require('../common/queryFunction');
+var QueryFn = require('./queryFunction');
 
 var S3 = new AWS.S3(s3Config);
 
@@ -29,17 +29,15 @@ function insertArticle(reqArticle, callback) {
 
 function selectArticles(reqData, callback) {
    let selectQuery =
-      'select art.art_id, art.user_id, create_time, image_url, content, lat, longitude as "long", count(l.user_id) as likes, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url ' +
-      'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "lat", st_x(art_pos) as "longitude" ' +
+      'select art.art_id, art.user_id, create_time, image_url, content, lat, longitude as "long", num_likes, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url ' +
+      'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "lat", st_x(art_pos) as "longitude", num_likes ' +
       '      from articles ' +
       '      where mbrcontains(envelope(linestring(' +
       '            point(round((? + (? / abs(cos(radians(?)) * 111.2))), 6), round((?+(?/111)), 6)), ' +
       '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111)), 6)))), art_pos) ' +
-      '      order by create_time ' +
+      '      order by art_id desc' +
       '      limit ?, ?) as art ' +
-      '      left outer join users as u on (art.user_id = u.user_id) ' +
-      '      left outer join likes as l on (art.art_id = l.art_id) ' +
-      'where l.art_id = art.art_id';
+      '      left outer join users as u on (art.user_id = u.user_id) ';
    let selectParams = [aes_key, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.limit.former, reqData.limit.latter];
 
    QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows, fields) {
@@ -49,10 +47,42 @@ function selectArticles(reqData, callback) {
    })
 }
 
-function selectArticlesById(reqData, callback) {
+function selectArticlesByUserId(reqData, callback) {
+   let selectQuery = 'select art_id, image_url, create_time ' +
+                      'from articles ' +
+                      'where user_id = ? ' +
+                      'order by art_id desc ' +
+                      'limit ?, ?';
+   let selectParams = [reqData.user_id, reqData.limit.former, reqData.limit.latter];
 
+   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
+      if (err)
+         return callback(err);
+      callback(null, rows);
+   })
+}
+
+function selectArticlesById(reqArt_id, callback) {
+   let select_query = 'select art.art_id, art.user_id, create_time, image_url, content, lat, longitude as "long", num_likes, ' +
+                       'cast(aes_decrypt(user_name, unhex(sha2(@aes_key, 512))) as char) as user_name, profile_img_url ' +
+                       'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "lat", st_x(art_pos) as "longitude", num_likes ' +
+                       'from articles ' +
+                       'where art_id = ?) as art left outer join users as u on (art.user_id = u.user_id)';
+   let select_params = [reqArt_id];
+
+   QueryFn.selectQueryFunction(select_query, select_params, function (err, row) {
+      if (err)
+         return callback(err);
+      if (row.length !== 1){
+         err = new Error();
+         return callback(err);
+      }
+      callback(null, row);
+
+   });
 }
 
 module.exports.insertArticle = insertArticle;
 module.exports.selectArticles = selectArticles;
+module.exports.selectArticlesByUserId = selectArticlesByUserId;
 module.exports.selectArticlesById = selectArticlesById;

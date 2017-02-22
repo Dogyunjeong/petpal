@@ -8,7 +8,7 @@ var app = express();
 
 var index = require('./routes/index');
 var users = require('./routes/users');
-var oauth = require('./routes/oauth');
+var auth = require('./routes/auth');
 var terms = require('./routes/terms');
 var dogs = require('./routes/dogs');
 var articles = require('./routes/articles');
@@ -52,9 +52,9 @@ app.use(session({
    resave: true,
    saveUninitialized: false,
    cookie: {
-      path: '/',
-      httpOnly: true,
-      secure: true,
+      path: '/',     // path별 쿠키를 남길때
+      httpOnly: true,      // Http 통신만으로 쿠키를 변경 할 수 있음
+      secure: true,        // HTTPS일때만 쿠키를 전달
       maxAge: 1000 * 60 * 60 * 24 * 30 }
 }));
 
@@ -69,7 +69,7 @@ app.use(incomingCheck);
 app.use(mySecurity.isSecure);
 app.use('/', index);
 app.use('/terms', terms);
-app.use('/oauth', oauth);
+app.use('/auth', auth);
 
 app.use(mySecurity.isLoggedIn);
 app.use('/users',  users);

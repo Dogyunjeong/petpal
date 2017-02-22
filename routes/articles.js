@@ -67,8 +67,8 @@ router.get('/lat/:lat/long/:long', function(req, res, next) {
       distance: null,
       p: req.query.p || 1,
       limit: {
-         former: (req.query.p- 1) * 40 || 0,
-         latter: 40
+         former: (req.query.p- 1) * 20 || 0,
+         latter: 20
       }
    };
 
@@ -88,48 +88,34 @@ router.get('/lat/:lat/long/:long', function(req, res, next) {
 });
 
 router.get('/users/:user_id', function(req, res, next) {
+   let reqData = {
+      user_id: req.params.user_id,
+      page: req.query.p || 1,
+      limit: {
+         former: (req.query.p - 1) * 40 || 0,
+         latter: 40
+      }
+   };
 
-   Article.selectArticlesById(req.params.user_id, function (err, rows) {
+   Article.selectArticlesByUserId(reqData, function (err, rows) {
       if (err)
          return next(err);
       res.json({
-
+         page: reqData.p,
+         data: rows
       });
    });
 });
 
 router.get('/:art_id/details', function(req, res, next) {
-
-   var resultMsg =  {
-      data :
-         {
-            art_id : 123,
-            user_id : 1,
-            user_name : "홍길동",
-            create_date : "2016-08-10 15:30:00",
-            image_url : "https://goo.gl/pkEex0",
-            content : "말라와의 산책~~~",
-            num_like : 11
-         }
-   };
-   var errMsg = "게시글 상세 정보를 가져오는데 실패하였습니다.";
-
-   var reqData = [];
-   reqData[0] = [":art_id", req.params.art_id, "number", 1];
-
-   dummy(reqData, function (err, result) {
+   Article.selectArticlesById(req.params.art_id, function (err, rows) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+         result: {
+            data: rows
+         }
+      });
    });
 });
 
