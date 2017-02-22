@@ -23,12 +23,18 @@ router.post('/', function(req, res, next) {
 
    Seater.insertSeater(reqSeater, function (err, rows) {
       if (err){
-         err.message('시터 등록에 실패했습니다.');
+         if (err.code = "ER_DUP_ENTRY"){
+            err.status = 400;
+         }
+         err.message ='시터 등록에 실패했습니다.';
          return next(err);
+
+
+      } else {
+         res.json({
+            result: '시터 등록에 성공하였습니다.'
+         });
       }
-      res.json({
-         result: '시터 등록에 성공하였습니다.'
-      });
    });
 
 });

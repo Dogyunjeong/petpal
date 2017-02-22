@@ -1,11 +1,11 @@
-var AWS = require('aws-sdk');
+// const AWS = require('aws-sdk');
 
-var s3Config = require('../config/aws_s3');
+// const s3Config = require('../config/aws_s3');
 var dbPool = require('../common/dbPool');
 var logger = require('../common/logger');
 var QueryFn = require('./queryFunction');
 
-var S3 = new AWS.S3(s3Config);
+// const S3 = new AWS.S3(s3Config);
 
 const aes_key = process.env.AES_KEY;
 
@@ -40,7 +40,7 @@ function selectArticles(reqData, callback) {
       '      left outer join users as u on (art.user_id = u.user_id) ';
    let selectParams = [aes_key, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.long, reqData.distance, reqData.lat, reqData.lat, reqData.distance, reqData.limit.former, reqData.limit.latter];
 
-   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows, fields) {
+   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
       if (err)
          return callback(err);
       callback(null, rows);

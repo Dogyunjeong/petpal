@@ -98,6 +98,7 @@ app.use(function(err, req, res, next) {
   res.json({
      error: {
         message: err.message,
+        code: err.code,
         status: err.status || 500,
         stack: err.stack
      }
