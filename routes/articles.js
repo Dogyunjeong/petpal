@@ -28,6 +28,8 @@ var upload = multer({
    })
 });
 
+const articleSerachLimit = process.env.ARTICLE_SERACH_LIMIT;
+const feedImgListLimt = process.env.FEED_IMG_LIST_LIMIT;
 
 router.post('/', upload.single('image'), function(req, res, next) {
    if (!req.file || !req.body.content || !req.body.lat || !req.body.long) {
@@ -40,8 +42,8 @@ router.post('/', upload.single('image'), function(req, res, next) {
       image_url: req.file.location,
       content: req.body.content,
       position: {
-         lat:  req.body.lat * 1,
-         long: req.body.long * 1
+         lat:  + req.body.lat,
+         long: + req.body.long
       }
    };
    Article.insertArticle(reqArticle, function (err, result) {
@@ -67,8 +69,8 @@ router.get('/lat/:lat/long/:long', function(req, res, next) {
       distance: null,
       p: req.query.p || 1,
       limit: {
-         former: (req.query.p- 1) * 20 || 0,
-         latter: 20
+         former: (req.query.p - 1) * articleSerachLimit || 0,
+         latter: + articleSerachLimit
       }
    };
 
@@ -92,8 +94,8 @@ router.get('/users/:user_id', function(req, res, next) {
       user_id: req.params.user_id,
       page: req.query.p || 1,
       limit: {
-         former: (req.query.p - 1) * 40 || 0,
-         latter: 40
+         former: (req.query.p - 1) * feedImgListLimt || 0,
+         latter: + feedImgListLimt
       }
    };
 
@@ -101,9 +103,11 @@ router.get('/users/:user_id', function(req, res, next) {
       if (err)
          return next(err);
       res.json({
-         page: reqData.p,
-         data: rows
-      });
+         result: {
+            page: reqData.p,
+            data: rows
+         }
+   });
    });
 });
 

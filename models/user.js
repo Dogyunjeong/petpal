@@ -11,12 +11,12 @@ var S3 = new AWS.S3(s3Config);
 
 function updateUserProfile(reqUser, callback) {
    // 1. create select_user and update_user
-   var select_user_profile = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name,' +
+   let select_user_profile = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name,' +
                              'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile, ' +
                               'age, gender, address, profile_img_url ' +
                              'from users ' +
                              'where user_id = ?';
-   var update_user_profile = 'update users ' +
+   let update_user_profile = 'update users ' +
                               'set user_name=aes_encrypt(?, unhex(sha2(?, 512))), ' +
                               'mobile= aes_encrypt(?, unhex(sha2(?, 512))), age = ?, gender = ?, address = ?, profile_img_url = ? ' +
                               'where user_id = ?';
@@ -73,7 +73,7 @@ function updateUserProfile(reqUser, callback) {
 }
 
 function selectUserbyKakaoId(kakao_id, callback) {
-   var select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name,' +
+   let select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name,' +
                      'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile, ' +
                      'age, gender, address, profile_img_url, points ' +
                      'from users ' +
@@ -90,7 +90,7 @@ function selectUserbyKakaoId(kakao_id, callback) {
 }
 
 function selectUserbyUserId(user_id, callback) {
-   var select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, ' +
+   let select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, ' +
                      'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile,' +
                      'age, gender, address, profile_img_url ' +
                      'from users ' +

@@ -8,7 +8,7 @@ var app = express();
 
 var index = require('./routes/index');
 var users = require('./routes/users');
-var auth = require('./routes/auth');
+var oauth = require('./routes/oauth');
 var terms = require('./routes/terms');
 var dogs = require('./routes/dogs');
 var articles = require('./routes/articles');
@@ -69,7 +69,7 @@ app.use(incomingCheck);
 app.use(mySecurity.isSecure);
 app.use('/', index);
 app.use('/terms', terms);
-app.use('/auth', auth);
+app.use('/oauth', oauth);
 
 app.use(mySecurity.isLoggedIn);
 app.use('/users',  users);
@@ -93,6 +93,7 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
+  winstonlogger.log('debug', 'error is occured :  %j', err);
   // render the error page
   res.status(err.status || 500);
   res.json({

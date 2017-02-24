@@ -1,5 +1,6 @@
 var QueryFn = require('./queryFunction');
 var dbPool = require('../common/dbPool');
+const aes_key = process.env.AES_KEY;
 
 function insertSeater(reqSeater, callback) {
    let query = {
@@ -14,7 +15,7 @@ function insertSeater(reqSeater, callback) {
       insertParams: [reqSeater.stroll_user_id, reqSeater.stroll_pos_long, reqSeater.stroll_pos_lat, reqSeater.from_time,
                      reqSeater.to_time, reqSeater.dog_weight, reqSeater.dog_gender, reqSeater.dog_neutralized]
    };
-   QueryFn.insertWithCheck(query, params, function (err, result) {
+   QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
       if (err) {
          if (err.status === 400) {
             err.message = '중복된 산책 정보가 존재합니다.';
@@ -53,7 +54,7 @@ function updateSeater(reqSeater, callback) {
       },
       prevParams: null
    };
-   QueryFn.updateWithCheck(query, params, function (err, result) {
+   QueryFn.updateWithCheckNotExist(query, params, function (err, result) {
       if (err) {
          if (err.status = 400) {
             err.message = '시터 정보 변경에 실패했습니다.';
@@ -106,7 +107,54 @@ function selectSeater(reqSeater, callback) {
    });
 }
 
+function findSeaters(searchData, callback) {
+   let queryParts = {
+      start :'select stroll_id, stroll_user_id, lat , stroll_pos_long as "long", from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url ' +
+             'from (select stroll_id, stroll_user_id, st_y(stroll_pos) as lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time, dog_weight, dog_gender, dog_neutralized, ' +
+                   '6371 * acos(cos(radians(?)) * cos(radians(st_y(stroll_pos))) * cos(radians(st_x(stroll_pos)) - radians(?)) + sin(radians(?)) * sin(radians(st_y(stroll_pos)))) as distance ' +
+                   'from strolls ' +
+                   'where mbrcontains(envelope(linestring(point((? + (? / abs(cos(radians(?)) * 111.2))), (? + (? /111.2))), ' +
+                   'point(( ? - (? / abs(cos(radians(?)) * 111.2))), (? - (? /111.2))))), stroll_pos) ' +
+                   'and from_time > ? ',
+
+   partsForCombine : {
+         to_time: 'and to_time < ? ',
+         dog_weight: 'and dog_weight = ? ',
+         dog_gender: 'and dog_gender = ? ',
+         dog_neutralized: ' and dog_neutralized =  ? '
+      },
+      end : ' order by distance    limit ?, ? ) as s left join users as u on (s.stroll_user_id = u.user_id)'
+   };
+   let paramParts = {
+      start : [
+         aes_key,
+         searchData.stroll_pos_lat, searchData.stroll_pos_long, searchData.stroll_pos_lat,
+         searchData.stroll_pos_long,  searchData.distance, searchData.stroll_pos_lat, searchData.stroll_pos_lat, searchData.distance,
+         searchData.stroll_pos_long, searchData.distance, searchData.stroll_pos_lat, searchData.stroll_pos_lat, searchData.distance,
+         searchData.from_time
+      ],
+      partsForCombine : {
+         to_time: searchData.to_time,
+         dog_weight: searchData.dog_weight,
+         dog_gender: searchData.dog_gender,
+         dog_neutralized: searchData.dog_neutralized
+      },
+      end: [searchData.limit.former, searchData.limit.latter]
+   };
+   QueryFn.makeQueryThenDo(queryParts, paramParts, function (err, rows) {
+      if (err) {
+         err.message = "시터 정보 조회에 실패했습니다.";
+         return callback(err);
+      } else {
+         callback(null, rows);
+      }
+
+
+   });
+}
+
 module.exports.insertSeater = insertSeater;
 module.exports.updateSeater = updateSeater;
 module.exports.deleteSeater = deleteSeater;
 module.exports.selectSeater = selectSeater;
+module.exports.findSeaters = findSeaters;

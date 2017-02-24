@@ -105,7 +105,7 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
 
 }
 
-function insertWithCheck(query, params, callback) {
+function insertWithCheckNotExist(query, params, callback) {
    // 1. DB 커넥션 획득
    dbPool.getConnection(function (err, conn) {
       if (err)
@@ -154,7 +154,7 @@ function insertWithCheck(query, params, callback) {
    });
 }
 
-function updateWithCheck(query, params, callback) {
+function updateWithCheckNotExist(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
@@ -237,9 +237,104 @@ function updateWithCheck(query, params, callback) {
    });
 }
 
+function makeQueryThenDo(queryParts, paramParts, callback) {
+   let query = queryParts.start;
+   let params = paramParts.start;
+
+   function iterateFn(value, key, cb) {
+      if (value) {
+         query += queryParts.partsForCombine[key];
+         params.push(value);
+         cb()
+      } else {
+         cb()
+      }
+   }
+   function lastCb(err) {
+      if (err)
+         return callback(err);
+      query += queryParts.end;
+      params = params.concat(paramParts.end);
+      dbPool.getConnection(function (err, conn) {
+         if (err)
+            return callback(err);
+         conn.query(query, params, function (err, rows, fields) {
+            conn.release();
+            if (err)
+               return callback(err);
+            callback(null, rows, fields);
+         });
+      });
+   }
+   async.eachOf(paramParts.partsForCombine, iterateFn, lastCb )
+}
+
+function updateWithCheck(query, params, checkFn, callback) {
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+
+      //Create function to use for async.waterfall.
+      let updateParams = [];
+      function selectQueryForUpdate(nextCallback) {
+         conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+            if (err)
+               return nextCallback(err);
+            if (rows.length !== 1){
+               err = new Error();
+               err.status = 400;
+               return nextCallback(err);
+            } else {
+               //use check function and the do the task in the call back of check function
+               checkFn(err, rows, function (err) {
+                  if (err)
+                     return nextCallback(err);
+                  params.prevParams = rows[0];
+                  // set the parameters which is not exist in request params
+                  async.eachOf(params.updateParams, function (value, prop, next) {
+                     if (value) {
+                        updateParams.push(value)
+                     } else {
+                        updateParams.push(rows[0][prop]);
+                        params.updateParams[prop] = rows[0][prop];
+                     }
+                     next();
+                  }, function (err) {
+                     if (err)
+                        return nextCallback(err);
+                     nextCallback(null, updateParams);
+                  });
+               });
+
+            }
+         });
+      }
+      //Create update function for async.waterfall.
+      function updateQueryAfterSelect(updateParams, nextCallback) {
+         conn.query(query.updateQuery, updateParams, function (err, rows) {
+            if (err || rows.affectedRows !== 1)
+               return nextCallback(err);
+            nextCallback(null, updateParams);
+         });
+      }
+      if (err)
+         return callback(err);
+      async.waterfall([selectQueryForUpdate, updateQueryAfterSelect], function (err, updateParams) {
+         conn.release();
+         if (err)
+            return callback(err);
+         callback(null, updateParams);
+      });
+
+   });
+}
+
+
 module.exports.insertQueryFunction = insertQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
 module.exports.updateQueryFunction = updateQueryFunction;
 module.exports.deleteQueryFunction = deleteQueryFunction;
-module.exports.insertWithCheck = insertWithCheck;
+module.exports.insertWithCheckNotExist = insertWithCheckNotExist;
+module.exports.updateWithCheckNotExist = updateWithCheckNotExist;
 module.exports.updateWithCheck = updateWithCheck;
+module.exports.makeQueryThenDo = makeQueryThenDo;

@@ -1,184 +1,119 @@
 var express = require('express');
 var router = express.Router();
 var dummy = require('../models/dummy');
+var Reserve = require('../models/reserve');
 
+const reservationListLimt = process.env.RESERVATION_LIST_LIMIT;
 
 router.post('/:stroll_id/request', function(req, res, next) {
-   var resultMsg = "“매칭 요청에 성공하였습니다.";
-   var errMsg = "“매칭 요청에 실패하였습니다.";
-
-   var reqData = [];
-   reqData[0] = [":stroll_id ", req.params.stroll_id, "number", 1];
-   reqData[1] = ["from_time ", req.body.from_time, "string", 1];
-   reqData[2] = ["to_time ", req.body.to_time , "string", 1];
-
-
-   dummy(reqData, function (err, result) {
+   let reserveData = {
+      reserve_user_id: req.user.user_id,
+      reserve_dog_name: req.body.dog_name,
+      stroll_id: req.params.stroll_id,
+      stroll_user_id: req.body.stroll_user_id,
+      from_time: req.body.from_time,
+      to_time: req.body.to_time
+   };
+   Reserve.reserveStroll(reserveData, function (err, result) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         res.json({
-            err: errMsg,
-            sentData: result.data
-         });
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+         return next(err);
+      res.json({
+         result: "매칭 요청에 성공하였습니다."
+      })
+   });
+
+
+});
+
+router.get('/seaters', function(req, res, next) {
+   let reqSeater = {
+      stroll_user_id: req.user.user_id,
+      p: req.query.p || 1,
+      limit: {
+         former: (req.query.p - 1) * reservationListLimt || 0,
+         latter: + reservationListLimt
       }
+   };
+   Reserve.selectSeaterReservList(reqSeater, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            data: rows
+         }
+      })
    });
 });
 
-router.get('/seaters/:page', function(req, res, next) {
-   var resultMsg = {
-      data: [
-         {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }, {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }, {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }
-      ]
-   };
-   var errMsg = "예약 리스트 요청에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":page ", req.params.page, "number", 1];
-
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+router.get('/users', function(req, res, next) {
+   let reqUser = {
+      reserve_user_id: req.user.user_id,
+      p: req.query.p || 1,
+      limit: {
+         former: (req.query.p - 1) * reservationListLimt || 0,
+         latter: + reservationListLimt
       }
-   });
-});
-
-router.get('/users/:page', function(req, res, next) {
-   var resultMsg = {
-      data: [
-         {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }, {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }, {
-            reserve_id : 123,
-            reserve_user_id :  2143,
-            reserve_user_name : "정도균",
-            reserve_dog_name : "말라",
-            stroll_id : 4567,
-            from_time: "2017-01-01 18:00:00",
-            to_time : "2017-01-01 19:00:00"
-         }
-      ]
    };
-   var errMsg = "예약 리스트 요청에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":page ", req.params.page, "number", 1];
-
-   dummy(reqData, function (err, result) {
+   Reserve.selectUserReservList(reqUser, function (err, rows) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+         result: {
+            data: rows
+         }
+      })
    });
 });
 
 router.get('/:reserve_id/response/:status', function(req, res, next) {
-   var resultMsg = "시터 매칭에 성공하였습니다.";
-   var errMsg = "매칭 요청에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":reserve_id ", req.params.reserve_id, "number", 1];
-   reqData[1] = [":status ", req.params.reserve_id, "string", 1];
-
-
-   dummy(reqData, function (err, result) {
+   // make object with data related with reservations to use for parameter
+   let rsvObj = {
+      reserve_id: req.params.reserve_id,
+      res_status: (req.params.status === 'accept') ? 2 : (req.params.status === 'deny') ? 3 : null,
+      stroll_user_id: req.user.user_id
+   };
+   if (rsvObj.status === null)
+      return next(err);
+   Reserve.updateReserveStatus(rsvObj, function (err) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+         result: '산책 매칭에 성공하였습니다.'
+      })
    });
 });
 
 router.delete('/:reserve_id', function(req, res, next) {
    var resultMsg = "예약된 산책 취소에 성공하였습니다.";
    var errMsg = "예약된 산책 취소에 실패했습니다.";
+   //reqObj own the data which is sent from user
 
-   var reqData = [];
-   reqData[0] = [":reserve_id ", req.params.reserve_id, "number", 1];
 
-   dummy(reqData, function (err, result) {
+   if (!req.body.stroll_user_id || !req.body.reserve_user_id || !req.body.stroll_id || !req.body.reserve_dog_name) {
+      var err = new Error('필요 정보가 누락 되었습니다.');
+      err.status = 400;
+      return next(err);
+   }
+
+   if (req.user.user_id !== + req.body.stroll_user_id || req.user.user_id !== + req.body.reserve_user_id) {
+      var err = new Error('산책을 취소할 권한이 없습니다.');
+      err.status = 403;
+      return next(err);
+   }
+   let reqObj = {
+      reserve_id: + req.params.reserve_id,
+      stroll_id: + req.body.stroll_id,
+      stroll_user_id: + req.body.stroll_user_id,
+      reserve_user_id: + req.body.reserve_user_id,
+      reserve_dog_name: req.body.reserve_dog_name
+   };
+   Reserve.cancelReserveStatus(reqObj,function (err) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      else
+         res.json({result:'예약된 산책 취소에 성공하였습니다.'});
    });
+
 });
 
 
