@@ -1,31 +1,20 @@
 var express = require('express');
 var router = express.Router();
-var dummy = require('../models/dummy');
+var Review = require('../models/review');
 
 router.post('/:reserve_id', function(req, res, next) {
-   var resultMsg = "리뷰 등록에 성공하였습니다.";
-   var errMsg = "리뷰 등록에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":reserve_id ", req.params.reserve_id, "number", 1];
-   reqData[1] = ["stars", req.body.stars, "number", 1];
-   reqData[2] = ["content", req.body.content, "string", 1];
-
-   dummy(reqData, function (err, result) {
+   let reqReview = {
+      reserve_id: req.params.reserve_id,
+      reserve_user_id: req.user.user_id,
+      stars: + req.body.stars,
+      content: req.body.content
+   };
+   Review.postReview(reqReview, function (err, result) {
       if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = {
-            result:result
-         };
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
-      }
+         return next(err);
+      res.json({
+         result: '리뷰 등록에 성공했습니다.'
+      });
    });
 });
 

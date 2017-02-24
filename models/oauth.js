@@ -1,32 +1,43 @@
 var dbPool = require('../common/dbPool');
 var async = require('async');
+var QueryFn = require('./queryFunction');
 
-function authorizeKakao(kakao_id, kakao_token, callback) {
+const aes_key = process.env.AES_KEY;
 
+function authorizeKakao(profile, callback) {
+   let query = {
+      selectQuery: 'select user_id ' +
+                   'from users ' +
+                   'where kakao_id = ?',
+      insertQuery: 'insert users (kakao_id, kakao_token) ' +
+                   'values (?, ?)',
+   };
+   let params = {
+      selectParams: [profile.id],
+      insertParams: [profile.id, profile.accessToken]
+   };
 
-   var select_user_for_check = 'select user_id ' +
-      'from users ' +
-      'where kakao_id = ?';
-
-   dbPool.getConnection(function (err, conn) {
-      if (err)
-         return next(err);
-      conn.query(select_user_for_check, [kakao_id ], function (err, rows, fields) {
-         conn.release();
-         if (err) {
-            return callback(err);
-         }
-         if (rows.length === 1) {
-            var user = {};
-            user.kakao_id = kakao_id;
-            user.kakao_token = kakao_token;
-            user.user_id = rows[0].user_id;
+   QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
+      var user = {};
+      if (err) {
+         if (err.status === 400) {
+            err = null;
+            user = {
+               user_id: result[0].user_id,
+               kakao_id: profile.id
+            };
             return callback(null, user);
          } else {
-            // if user is not exist, set user.reqJoinFlag = 1 or null
-            callback(err);
+            return callback(err);
          }
-      });
+      } else {
+         user = {
+            user_id: result.insertId,
+            kakao_id: profile.id
+         };
+         return callback(null, user, result.insertId);
+      }
+
    });
 }
 
@@ -99,20 +110,22 @@ function findKakaoUserAndCreate(reqUser, callback) {
 
 }
 
-function findKakaoUser(kakao_id, callback) {
-   var select_user_for_check = 'select user_id, kakao_id, kakao_token ' +
+function findKakaoUser(user_id, callback) {
+   var select_user_for_check = 'select user_id, kakao_id ' +
                                'from users ' +
-                               'where kakao_id = ?';
+                               'where user_id = ?';
    dbPool.getConnection(function (err, conn) {
-      conn.query(select_user_for_check, kakao_id, function (err, rows) {
+      conn.query(select_user_for_check, user_id, function (err, rows) {
          conn.release();
          if (rows.length === 0) {
-            return callback(null, kakao_id);
+            err = new Error('로그인 실패');
+            return callback(err);
          }
          callback(null, rows[0]);
       });
    });
 }
+
 
 
 module.exports.authorizeKakao = authorizeKakao;
