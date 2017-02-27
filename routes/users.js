@@ -162,14 +162,19 @@ router.get('/points/used', function(req, res, next) {
 });
 
 
-// TODO need to arrange
+
 router.post('/img_list', function (req, res, next) {
    let userList = JSON.parse(req.body.user_list);
 
    User.selectUserImgList(userList, function (err, rows) {
       if (err) {
-         err.message = '자신의 프로필을 불러오는데 실패 했습니다.';
          return next(err);
+      } else {
+         res.json({
+            result: {
+               data: rows
+            }
+         })
       }
    });
 });

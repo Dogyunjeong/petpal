@@ -243,7 +243,7 @@ function makeQueryThenDo(queryParts, paramParts, callback) {
 
    function iterateFn(value, key, cb) {
       if (value) {
-         query += queryParts.partsForCombine && queryParts.partsForCombine[key];
+         query += queryParts.partsForCombine[key] || queryParts.partsForCombine.repeated;
          params.push(value);
          cb()
       } else {

@@ -151,17 +151,26 @@ function selectUsedPoints(reqData, callback) {
 function selectUserImgList(userList, callback) {
    let queryParts = {
       start: 'select user_id, profile_img_url, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name ' +
-             'from users ' +
-             'where user_id = ? ',
-      partsForCombine: ' or user_id = ? ',
-      end:'',
+             'from users ',
+      partsForCombine: {
+         0: 'where user_id = ? ',
+         repeated: 'or user_id = ? '
+      },
+      end:''
    };
    let paramParts = {
       start: [aes_key],
       partsForCombine: userList,
       end: []
-
-   }
+   };
+   QueryFn.makeQueryThenDo(queryParts, paramParts, function (err, rows) {
+      if (err) {
+         err.message = '회원들의 이미지, 이름 리스트를 불러오는데 실패했습니다.';
+         return callback(err);
+      } else {
+         callback(null, rows);
+      }
+   });
 }
 
 module.exports.updateUserProfile = updateUserProfile;
