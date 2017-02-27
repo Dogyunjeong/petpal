@@ -47,8 +47,8 @@ passport.use(new LocalStrategy({usernameField: 'kakao_id', passwordField: 'kakao
 passport.serializeUser(function(user, done) {
    done(null, user.user_id);
 });
-passport.deserializeUser(function(user_id, done) {
-   Oauth.findKakaoUser(user_id, function (err, user) {
+passport.deserializeUser(function(kakao_id, done) {
+   Oauth.findKakaoUser(kakao_id, function (err, user) {
       if (err)
          return done(err);
       done(null, user);
@@ -77,10 +77,6 @@ router.get("/login", passport.authenticate('kakao',{state: "myStateValue"}));
 // need to access this way https://localhost/oauth/kakaotalk/token?access_token=JNVDeylwsvfOHpHEf-LrXaCs4HmiW9CAjzqsago8BRIAAAFabn0kcg
 //  https://localhost/oauth/kakaotalk/token?access_token=375028451
 router.get("/kakaotalk/token", passport.authenticate('kakao'), function(req, res){
-
-
-
-
    if (reqJoinFlag > 0) {
       reqJoinFlag = 0;
       res.status(201).json({

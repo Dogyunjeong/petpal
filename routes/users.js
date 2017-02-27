@@ -5,9 +5,10 @@ var AWS = require('aws-sdk');
 var router = express.Router();
 
 var s3Config = require('../config/aws_s3');
-var dummy = require('../models/dummy');
 var User = require('../models/user');
 var incomingCheck = require('../models/incomingCheck');
+
+const listLimit = process.env.TEXT_LIMIT;
 
 var S3 = new AWS.S3({
    region : s3Config.region,
@@ -28,7 +29,6 @@ var upload = multer({
    })
 });
 
-/* GET users listing. */
 router.post('/', upload.single('profile_image'), incomingCheck, function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
@@ -108,7 +108,6 @@ router.get('/me', function(req, res, next) {
 
 });
 
-
 router.get('/:user_id', function(req, res, next) {
    User.selectUserbyUserId(req.params.user_id, function (err, user) {
       if (err || !user) {
@@ -120,80 +119,60 @@ router.get('/:user_id', function(req, res, next) {
    });
 });
 
-
-//TODO API
-router.get('/points/received/:p', function(req, res, next) {
-   var resultMsg =  {
-      data:  [
-         {
-            type: "post",
-            create_date : "2017-01-01 19:00:00",
-            points : 1
-         }, {
-            type: "stroll",
-            create_date : "2017-01-01 19:00:00",
-            points : 10
-         }
-      ]
-   };
-   var errMsg = "적립 포인트 이력 조회에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":p", req.params.p, "number", 1];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+router.get('/points/received', function(req, res, next) {
+   let reqData = {
+      user_id: req.user.user_id,
+      reqPage: + req.query.p || 0,
+      limit: {
+         former: (req.query.p - 1) * listLimit || 0,
+         latter: +listLimit
       }
+   };
+   User.selectRecievedPoints(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            page: reqData.reqPage,
+            data: rows
+         }
+      });
    });
 });
 
-//TODO API
-router.get('/points/used/:p', function(req, res, next) {
-   var resultMsg =  {
-      data:  [
-         {
-            type: "stroll",
-            create_date : "2017-01-01 19:00:00",
-            points : -10
-         }, {
-            type: "stroll",
-            create_date : "2017-01-01 19:45:00",
-            points : -10
-         }
-      ]
-   };
-   var errMsg = "차감 포인트 이력 조회에 실패했습니다.";
-
-   var reqData = [];
-   reqData[0] = [":p", req.params.p, "number", 1];
-
-   dummy(reqData, function (err, result) {
-      if (err)
-         next(err);
-      if (result.errFlag > 0) {
-         err = new Error(errMsg);
-         err.stack = result;
-         next(err);
-      } else {
-         res.json({
-            result: resultMsg,
-            sentData: result.data
-         });
+router.get('/points/used', function(req, res, next) {
+   let reqData = {
+      user_id: req.user.user_id,
+      reqPage: + req.query.p || 0,
+      limit: {
+         former: (req.query.p - 1) * listLimit || 0,
+         latter: +listLimit
       }
+   };
+   User.selectUsedPoints(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            page: reqData.reqPage,
+            data: rows
+         }
+      });
    });
 });
 
 
+// TODO need to arrange
+router.post('/img_list', function (req, res, next) {
+   let userList = JSON.parse(req.body.user_list);
+
+   User.selectUserImgList(userList, function (err, rows) {
+      if (err) {
+         err.message = '자신의 프로필을 불러오는데 실패 했습니다.';
+         return next(err);
+      }
+   });
+});
 
 
 module.exports = router;

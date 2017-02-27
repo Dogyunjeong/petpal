@@ -113,7 +113,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
 function findKakaoUser(user_id, callback) {
    var select_user_for_check = 'select user_id, kakao_id ' +
                                'from users ' +
-                               'where user_id = ?';
+                               'where kakao_id = ?';
    dbPool.getConnection(function (err, conn) {
       conn.query(select_user_for_check, user_id, function (err, rows) {
          conn.release();

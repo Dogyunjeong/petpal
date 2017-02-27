@@ -3,6 +3,7 @@ var async = require('async');
 var AWS = require('aws-sdk');
 var s3Config = require('../config/aws_s3');
 var logger = require('../common/logger');
+var QueryFn = require('../models/queryFunction');
 
 var aes_key = process.env.AES_KEY;
 var s3Bucket = process.env.S3_BUCKET;
@@ -105,6 +106,67 @@ function selectUserbyUserId(user_id, callback) {
       });
    });
 }
+
+function selectRecievedPoints(reqData, callback) {
+   let selectQuery = 'select type, create_time, points ' +
+                      'from (select "stroll" as type, reserve_time as create_time, 10 as points ' +
+                      'from reservations ' +
+                      'where stroll_user_id = ? and status = "Done" ' +
+                      'union all ' +
+                      'select "post" as type, create_time, 1 as points ' +
+                      'from articles ' +
+                      'where user_id = ?) as points_list ' +
+                      'order by create_time desc ' +
+                      'limit ?, ?';
+   let selectParams = [reqData.user_id, reqData.user_id, reqData.limit.former, reqData.limit.latter];
+
+   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
+      if (err) {
+         err.message = '적립 포인트 이력 조회에 실패했습니다.';
+         return callback(err);
+      } else {
+         callback(null, rows);
+      }
+   });
+}
+
+function selectUsedPoints(reqData, callback) {
+   let selectQuery = 'select "stroll" as type, reserve_time as create_time, 10 as points ' +
+                     'from reservations ' +
+                     'where reserve_user_id = ? and status = "Done" ' +
+                     'order by create_time desc ' +
+                     'limit ?, ?';
+   let selectParams = [reqData.user_id, reqData.limit.former, reqData.limit.latter];
+
+   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
+      if (err) {
+         err.message = '차감 포인트 이력 조회에 실패했습니다.';
+         return callback(err);
+      } else {
+         callback(null, rows);
+      }
+   });
+}
+
+function selectUserImgList(userList, callback) {
+   let queryParts = {
+      start: 'select user_id, profile_img_url, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name ' +
+             'from users ' +
+             'where user_id = ? ',
+      partsForCombine: ' or user_id = ? ',
+      end:'',
+   };
+   let paramParts = {
+      start: [aes_key],
+      partsForCombine: userList,
+      end: []
+
+   }
+}
+
 module.exports.updateUserProfile = updateUserProfile;
 module.exports.selectUserbyKakaoId = selectUserbyKakaoId;
 module.exports.selectUserbyUserId = selectUserbyUserId;
+module.exports.selectRecievedPoints = selectRecievedPoints;
+module.exports.selectUsedPoints = selectUsedPoints;
+module.exports.selectUserImgList = selectUserImgList;
