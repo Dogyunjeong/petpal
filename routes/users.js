@@ -24,7 +24,7 @@ var upload = multer({
          cb(null, {fieldName: file.fieldname});
       },
       key: function (req, file, cb) {
-         cb(null, 'profile/' + file.originalname + Date.now().toString())
+         cb(null, 'user_profile_img/' + file.originalname + Date.now().toString())
       }
    })
 });

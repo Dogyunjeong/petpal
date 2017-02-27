@@ -1,7 +1,7 @@
 var winstonlogger = require('../common/logger');
 
 function incomingCheck(req, res, next) {
-   winstonlogger.log('debug', 'access url :  %s', req.originalUrl);
+   winstonlogger.log('debug', 'access url :  %s %s', req.method, req.originalUrl);
    if (Object.keys(req.params).length > 0)
       winstonlogger.log('debug', 'params     :  %j', req.params);
    if (Object.keys(req.body).length > 0)

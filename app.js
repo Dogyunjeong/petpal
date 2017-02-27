@@ -72,6 +72,7 @@ app.use('/terms', terms);
 app.use('/oauth', oauth);
 
 app.use(mySecurity.isLoggedIn);
+
 app.use('/users',  users);
 app.use('/dogs', dogs);
 app.use('/articles', articles);
@@ -97,12 +98,7 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.json({
-     error: {
-        message: err.message,
-        code: err.code,
-        status: err.status || 500,
-        stack: err.stack
-     }
+     error: err.message
   });
 });
 

@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var Review = require('../models/review');
 
-const reviewListLimit = process.env.REVIEW_LIST_LIMIT;
+const reviewListLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/:reserve_id', function(req, res, next) {
    let reqReview = {
@@ -21,7 +21,6 @@ router.post('/:reserve_id', function(req, res, next) {
 });
 
 
-//TODO Test needed
 router.get('/:stroll_user_id', function(req, res, next) {
    let reqData = {
       stroll_user_id: req.params.stroll_user_id,

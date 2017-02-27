@@ -3,7 +3,7 @@ var router = express.Router();
 var dummy = require('../models/dummy');
 var Reserve = require('../models/reserve');
 
-const reservationListLimt = process.env.RESERVATION_LIST_LIMIT;
+const reservationListLimt = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/:stroll_id/request', function(req, res, next) {
    let reserveData = {

@@ -168,13 +168,13 @@ function selectUserDogsProfile(reqUserId, callback) {
                             'from pet_dogs ' +
                             'where user_id = ?';
    let params_for_select_dog_profile = [aes_key, reqUserId];
-   //TODO 2. Use selectQueryFunction with query and params of 1
+   // 2. Use selectQueryFunction with query and params of 1
    selectQueryFunction(select_dog_profile, params_for_select_dog_profile, function (err, rows) {
       if (err)
          return callback(err);
       callback(null, rows);
    });
-   //TODO 3. handle error and call the callback
+   // 3. handle error and call the callback
 
 }
 
@@ -255,7 +255,7 @@ function updateDogProfile(reqDog, callback) {
    });
 
 
-   //TODO 3. handle the err and callback(null, result)
+   // 3. handle the err and callback(null, result)
 }
 
 function deleteDogProfile(reqDog, callback) {

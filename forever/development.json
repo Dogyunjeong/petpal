@@ -1,7 +1,7 @@
 {
-  "uid": "petpal-dummy",
+  "uid": "petpal_dev",
   "append": true,
-  "watch": true,
+  "watch": false,
   "script": "./bin/www",
-  "sourceDir": "/home/ubuntu/development/petpal_dummy"
+  "sourceDir": "/home/ubuntu/development/petpal"
 }

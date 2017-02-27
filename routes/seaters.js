@@ -4,7 +4,7 @@ var dummy = require('../models/dummy');
 var Seater = require('../models/seater');
 
 const seaterSearchDistance = process.env.SEATER_SERACH_DISTANCE;
-const seaterSearchLimit = process.env.SEATER_SERACH_LIMIT;
+const seaterSearchLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/', function (req, res, next) {
    // check required data is coming then make object to send
