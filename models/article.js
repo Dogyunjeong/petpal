@@ -14,7 +14,7 @@ function insertArticle(reqArticle, callback) {
       insertArticle: 'insert into articles(user_id, image_url, content, art_pos) ' +
                      'values(?, ?, ?, POINT(?, ?))',
       updatePoint: 'update users ' +
-                   'set points = point + 1 '+
+                   'set points = points + 1 '+
                    'where user_id= ? '
    };
    let param = {
@@ -25,11 +25,11 @@ function insertArticle(reqArticle, callback) {
    QueryFn.eachOfQueryFunction(query, param, function (err, result) {
       if (err)
          return callback(err);
-      if (result.affectedRows !== 1) {
+      if (result.length === 0) {
          err = new Error('게시글 작성에 실패하였습니다.');
          return callback(err);
       } else {
-         reqArticle.art_id = result.insertId;
+         reqArticle.art_id = result[0].insertId;
          callback(null);
       }
    });
@@ -90,7 +90,63 @@ function selectArticlesById(reqArt_id, callback) {
    });
 }
 
+function likeArticleById(reqData, callback) {
+   let query = {
+      insertForLikes: 'insert likes (user_id, art_id) ' +
+                      'value (?, ?) ',
+      updateForArticles: 'update articles ' +
+                         'set num_likes = num_likes + 1 ' +
+                         'where art_id = ?'
+   };
+   let params = {
+      insertForLikes: [reqData.user_id, reqData.art_id],
+      updateForArticles: [reqData.art_id]
+   } ;
+   QueryFn.eachOfQueryFunction(query, params, function (err, result) {
+      if (err) {
+         err.message = '좋아요에 실패했습니다.';
+         return callback(err);
+      } else if (result.length !== 0) {
+         return callback(null);
+      } else {
+         err = new Error('Unexpected Error');
+         return callback(err);
+      }
+
+   });
+}
+
+
+function unlikeArticleById(reqData, callback) {
+   let query = {
+      insertForLikes: 'delete ' +
+                      'from likes ' +
+                      'where user_id = ? and art_id = ?',
+      updateForArticles: 'update articles ' +
+                         'set num_likes = num_likes - 1 ' +
+                         'where art_id = ?'
+   };
+   let params = {
+      insertForLikes: [reqData.user_id, reqData.art_id],
+      updateForArticles: [reqData.art_id]
+   } ;
+   QueryFn.eachOfQueryFunction(query, params, function (err, result) {
+      if (err) {
+         err.message = '좋아요에 실패했습니다.';
+         return callback(err);
+      } else if (result.length !== 0) {
+         return callback(null);
+      } else {
+         err = new Error('Unexpected Error');
+         return callback(err);
+      }
+
+   });
+}
+
 module.exports.insertArticle = insertArticle;
 module.exports.selectArticles = selectArticles;
 module.exports.selectArticlesByUserId = selectArticlesByUserId;
 module.exports.selectArticlesById = selectArticlesById;
+module.exports.likeArticleById = likeArticleById;
+module.exports.unlikeArticleById = unlikeArticleById;

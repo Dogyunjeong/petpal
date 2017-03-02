@@ -123,4 +123,34 @@ router.get('/:art_id/details', function(req, res, next) {
    });
 });
 
+router.get('/:art_id/like', function(req, res, next) {
+   let reqData = {
+      art_id: req.params.art_id,
+      user_id: req.user.user_id
+   };
+
+   Article.likeArticleById(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: '좋아요에 성공하였습니다.'
+      });
+   });
+});
+
+router.get('/:art_id/unlike', function(req, res, next) {
+   let reqData = {
+      art_id: req.params.art_id,
+      user_id: req.user.user_id
+   };
+
+   Article.unlikeArticleById(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: '좋아요 취소에 성공하였습니다.'
+      });
+   });
+});
+
 module.exports = router;

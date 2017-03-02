@@ -84,7 +84,6 @@ router.put('/:stroll_id', function (req, res, next) {
          result: '시터 정보 변경에 성공하였습니다.'
       });
    });
-
 });
 
 router.delete('/:stroll_id', function (req, res, next) {

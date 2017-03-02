@@ -1,11 +1,12 @@
 var dbPool = require('./../common/dbPool');
 var async = require('async');
+var logger = require('../common/logger');
 
 function eachOfQueryFunction(queries, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
-      else if (Object.keys(queries).length = 1) {
+      else if (Object.keys(queries).length === 1) {
          conn.query(queries, params, function (err, result) {
             conn.release();
             if (err || !result) {
@@ -14,16 +15,47 @@ function eachOfQueryFunction(queries, params, callback) {
             callback(null, result)
          });
       } else {
+         var eachResult = []
          conn.beginTransaction(function (err) {
-            if (err)
+            if (err){
+               conn.release();
                return callback(err);
+            }
             function iterateQuery(value, key, cb) {
                conn.query(value, params[key], function (err, rows) {
                   if (err)
-                     cb
+                     return cb(err);
+                  else {
+                     eachResult.push(rows);
+                     cb();
+                  }
                });
             }
-            async.eachOf(query, iterateQuery,  )
+            function eachOfCb(err) {
+               if (err) {
+                  conn.rollback(function (connErr) {
+                     conn.release();
+                     if (connErr) {
+                        logger.log('info', 'Failed to rollback:   %j', eachResult);
+                        return callback(connErr);
+                     } else {
+                        return callback(err);
+                     }
+                  });
+               } else {
+                  conn.commit(function (connErr) {
+                     conn.release();
+                     if (connErr) {
+                        logger.log('info', 'Failed to commit:   %j', eachResult);
+                        return callback(connErr);
+                     } else {
+                        return callback(null, eachResult);
+                     }
+                  });
+               }
+
+            }
+            async.forEachOf(queries, iterateQuery, eachOfCb);
 
          });
       }

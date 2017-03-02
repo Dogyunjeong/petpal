@@ -60,7 +60,7 @@ passport.use( new KakaoTokenStrategy({
    })
 );
 
-router.get("/login", passport.authenticate('kakao',{state: "myStateValue"}));
+router.get("/kakaotalk/login", passport.authenticate('kakao',{state: "myStateValue"}));
 
 // need to access this way https://localhost/oauth/kakaotalk/token?access_token=JNVDeylwsvfOHpHEf-LrXaCs4HmiW9CAjzqsago8BRIAAAFabn0kcg
 //  https://localhost/oauth/kakaotalk/token?access_token=375028451
