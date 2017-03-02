@@ -11,25 +11,30 @@ function authorizeKakao(profile, callback) {
                    'where kakao_id = ?',
       insertQuery: 'insert users (kakao_id, kakao_token) ' +
                    'values (?, ?)',
+      updateQuery: 'update users ' +
+                   'set kakao_token = ? ' +
+                   'where user_id = ?'
    };
    let params = {
       selectParams: [profile.id],
-      insertParams: [profile.id, profile.accessToken]
+      insertParams: [profile.id, profile.accessToken],
+      updateParams: [profile.accessToken]
    };
+   function process(rows, cb) {
+      params.updateParams.push(rows[0].user_id);
+      cb();
+   }
 
-   QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
+   QueryFn.insertIfNotExistOrUpdate(query, params, process, function (err, result) {
       var user = {};
       if (err) {
-         if (err.status === 400) {
-            err = null;
-            user = {
-               user_id: result[0].user_id,
-               kakao_id: profile.id
-            };
-            return callback(null, user);
-         } else {
-            return callback(err);
-         }
+         return callback(err);
+      } else if (result === 0) {
+         user = {
+            user_id: params.updateParams[1],
+            kakao_id: profile.id
+         };
+         return callback(null, user);
       } else {
          user = {
             user_id: result.insertId,
@@ -37,7 +42,6 @@ function authorizeKakao(profile, callback) {
          };
          return callback(null, user, result.insertId);
       }
-
    });
 }
 

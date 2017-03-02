@@ -66,12 +66,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(incomingCheck);
 
-app.use(mySecurity.isSecure);
+
 app.use('/', index);
 app.use('/terms', terms);
 app.use('/oauth', oauth);
 
-app.use(mySecurity.isLoggedIn);
+app.use(mySecurity.isSecure);
 
 app.use('/users',  users);
 app.use('/dogs', dogs);

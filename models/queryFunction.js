@@ -5,15 +5,25 @@ function insertQueryFunction(insertQuery, insertParams, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
-      conn.query(insertQuery, insertParams, function (err, result) {
-         conn.release();
-         if (err || !result) {
-            return callback(err);
-         }
-         callback(null, result)
-      });
+      else if (Object.keys(insertQuery).length = 1) {
+         conn.query(insertQuery, insertParams, function (err, result) {
+            conn.release();
+            if (err || !result) {
+               return callback(err);
+            }
+            callback(null, result)
+         });
+      } else {
+         conn.beginTransaction(function (err) {
+            if (err)
+               return callback(err);
+
+         });
+      }
+
    });
 }
+
 // create selectQueryFunction
 function selectQueryFunction(selectQuery, selectParams, callback) {
    // get db connection
@@ -153,6 +163,61 @@ function insertWithCheckNotExist(query, params, callback) {
 
    });
 }
+
+function insertIfNotExistOrUpdate(query, params, processFn, callback) {
+   // 1. DB 커넥션 획득
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+      // 2. Begin Transaction to rollback if there is result of selectQuery
+      function checkExistingWithSelect(cb) {
+         conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+            if (err)
+               return cb(err);
+            else if(rows.length) {
+               processFn(rows, function () {
+                  cb(null, 'update');
+               });
+            } else {
+               cb(null, 'insert');
+            }
+         });
+      }
+
+      function insertOrUpdate(checkResult, cb) {
+         if (checkResult === 'insert'){
+            conn.query(query.insertQuery, params.insertParams, function (err, result) {
+               if (err)
+                  return cb(err);
+               cb(null, result);
+            });
+         } else {
+            conn.query(query.updateQuery, params.updateParams, function (err, rows) {
+               if (err)
+                  return cb(err);
+               else if (rows.affectedRows !== 1) {
+                  err = new Error();
+                  return cb(err);
+               } else {
+                  cb(null, 0);
+               }
+            });
+         }
+      }
+
+      function waterfallCallback(err, result) {
+         if (err) {
+            return callback(err);
+         } else {
+            callback(null, result);
+         }
+      }
+      // 3. Use async.parallel to select and insert.
+      async.waterfall([checkExistingWithSelect, insertOrUpdate], waterfallCallback);
+
+   });
+}
+
 
 function updateWithCheckNotExist(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
@@ -330,10 +395,12 @@ function updateWithCheck(query, params, checkFn, callback) {
 }
 
 
+
 module.exports.insertQueryFunction = insertQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
 module.exports.updateQueryFunction = updateQueryFunction;
 module.exports.deleteQueryFunction = deleteQueryFunction;
+module.exports.insertIfNotExistOrUpdate=insertIfNotExistOrUpdate;
 module.exports.insertWithCheckNotExist = insertWithCheckNotExist;
 module.exports.updateWithCheckNotExist = updateWithCheckNotExist;
 module.exports.updateWithCheck = updateWithCheck;
