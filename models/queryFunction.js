@@ -1,12 +1,12 @@
 var dbPool = require('./../common/dbPool');
 var async = require('async');
 
-function insertQueryFunction(insertQuery, insertParams, callback) {
+function eachOfQueryFunction(queries, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
-      else if (Object.keys(insertQuery).length = 1) {
-         conn.query(insertQuery, insertParams, function (err, result) {
+      else if (Object.keys(queries).length = 1) {
+         conn.query(queries, params, function (err, result) {
             conn.release();
             if (err || !result) {
                return callback(err);
@@ -17,6 +17,13 @@ function insertQueryFunction(insertQuery, insertParams, callback) {
          conn.beginTransaction(function (err) {
             if (err)
                return callback(err);
+            function iterateQuery(value, key, cb) {
+               conn.query(value, params[key], function (err, rows) {
+                  if (err)
+                     cb
+               });
+            }
+            async.eachOf(query, iterateQuery,  )
 
          });
       }
@@ -136,7 +143,7 @@ function insertWithCheckNotExist(query, params, callback) {
       }
 
       function insertFunction(cb) {
-         insertQueryFunction(query.insertQuery, params.insertParams, function (err, result) {
+         eachOfQueryFunction(query.insertQuery, params.insertParams, function (err, result) {
             if (err)
                return cb(err);
             cb(null, result);
@@ -396,7 +403,7 @@ function updateWithCheck(query, params, checkFn, callback) {
 
 
 
-module.exports.insertQueryFunction = insertQueryFunction;
+module.exports.eachOfQueryFunction = eachOfQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
 module.exports.updateQueryFunction = updateQueryFunction;
 module.exports.deleteQueryFunction = deleteQueryFunction;

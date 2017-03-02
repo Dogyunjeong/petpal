@@ -10,11 +10,19 @@ var QueryFn = require('./queryFunction');
 const aes_key = process.env.AES_KEY;
 
 function insertArticle(reqArticle, callback) {
-   let insertQuery = 'insert into articles(user_id, image_url, content, art_pos) ' +
-                      'values(?, ?, ?, POINT(?, ?))';
-   let insertParams = [reqArticle.user_id, reqArticle.image_url, reqArticle.content, reqArticle.position.long, reqArticle.position.lat];
+   let query = {
+      insertArticle: 'insert into articles(user_id, image_url, content, art_pos) ' +
+                     'values(?, ?, ?, POINT(?, ?))',
+      updatePoint: 'update users ' +
+                   'set points = point + 1 '+
+                   'where user_id= ? '
+   };
+   let param = {
+      insertArticle: [reqArticle.user_id, reqArticle.image_url, reqArticle.content, reqArticle.position.long, reqArticle.position.lat],
+      updatePoint: [reqArticle.user_id]
+   };
 
-   QueryFn.insertQueryFunction(insertQuery, insertParams, function (err, result) {
+   QueryFn.eachOfQueryFunction(query, param, function (err, result) {
       if (err)
          return callback(err);
       if (result.affectedRows !== 1) {

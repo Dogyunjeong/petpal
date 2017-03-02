@@ -6,7 +6,7 @@ function postReview(reqReview, callback) {
                      'select reserve_id, stroll_id, stroll_user_id, reserve_user_id, reserve_dog_name, ?, ? from reservations where reserve_id = ? and reserve_user_id = ?';
    let insertParams = [reqReview.stars, reqReview.content, reqReview.reserve_id, reqReview.reserve_user_id];
 
-   QueryFn.insertQueryFunction(inserQuery, insertParams, function (err, result) {
+   QueryFn.eachOfQueryFunction(inserQuery, insertParams, function (err, result) {
       if (err) {
          err.message = '리뷰 등록에 실패했습니다.';
          return callback(err);

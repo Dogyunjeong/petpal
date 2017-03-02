@@ -68,15 +68,11 @@ router.get("/kakaotalk/callback", passport.authenticate('kakao'), function(req, 
    if (reqJoinFlag > 0) {
       reqJoinFlag = 0;
       res.status(201).json({
-         result : {
-            message: "회원 가입이 필요한 사용자입니다."
-         }
+         result : "회원 가입이 필요한 사용자입니다."
       });
    } else {
       res.json({
-         result : {
-            message: "등록된 사용자입니다."
-         }
+         result :"등록된 사용자입니다."
       });
    }
 });
@@ -86,15 +82,11 @@ router.get('/kakaotalk/token', passport.authenticate('kakao-token', {failure: 'h
       if (reqJoinFlag > 0) {
          reqJoinFlag = 0;
          res.status(201).json({
-            result : {
-               message: "회원 가입이 필요한 사용자입니다."
-            }
+            result :  "회원 가입이 필요한 사용자입니다."
          });
       } else {
          res.json({
-            result : {
-               message: "등록된 사용자입니다."
-            }
+            result :  "등록된 사용자입니다."
          });
       }
    } else {

@@ -94,7 +94,8 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  winstonlogger.log('debug', 'error is occured :  %j', err);
+  winstonlogger.log('debug', '-------ERROR----------ERROR----------ERROR----------ERROR---');
+  winstonlogger.log('debug', '------Error is occurred :  %j', err);
   // render the error page
   res.status(err.status || 500);
   res.json({
