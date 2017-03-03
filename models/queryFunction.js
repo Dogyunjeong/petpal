@@ -257,7 +257,6 @@ function insertIfNotExistOrUpdate(query, params, processFn, callback) {
    });
 }
 
-
 function updateWithCheckNotExist(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)

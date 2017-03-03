@@ -37,7 +37,7 @@ function insertArticle(reqArticle, callback) {
 
 function selectArticles(reqData, callback) {
    let selectQuery =
-      'select art.art_id, art.user_id, create_time, image_url, content, pos_lat, pos_long, num_likes, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url ' +
+      'select art.art_id, art.user_id, create_time, image_url, content, pos_lat, pos_long, num_likes, ifnull(liked, 0) as liked, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url, num_stroll ' +
       'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "pos_lat", st_x(art_pos) as "pos_long", num_likes ' +
       '      from articles ' +
       '      where mbrcontains(envelope(linestring(' +
@@ -45,8 +45,11 @@ function selectArticles(reqData, callback) {
       '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111.2)), 6)))), art_pos) ' +
       '      limit ?, ?) as art ' +
       '      left outer join users as u on (art.user_id = u.user_id) ' +
+      '      left outer join (select 1 as liked, art_id ' +
+      '                       from likes  ' +
+      '                       where user_id = ?) as li on (art.art_id = li.art_id) ' +
       'order by art_id desc';
-   let selectParams = [aes_key, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.limit.former, reqData.limit.latter];
+   let selectParams = [aes_key, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.limit.former, reqData.limit.latter, reqData.user_id];
 
    QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
       if (err)
@@ -54,6 +57,27 @@ function selectArticles(reqData, callback) {
       callback(null, rows);
    })
 }
+
+function selectArticlesForMap(reqData, callback) {
+   let selectQuery =
+      'select art.art_id, art.user_id, pos_lat, pos_long, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url, age, gender, num_stroll ' +
+      'from (select art_id, user_id, st_y(art_pos) as "pos_lat", st_x(art_pos) as "pos_long" ' +
+      '      from articles ' +
+      '      where mbrcontains(envelope(linestring(' +
+      '            point(round((? + (? / abs(cos(radians(?)) * 111.2))), 6), round((?+(?/111.2)), 6)), ' +
+      '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111.2)), 6)))), art_pos) ' +
+      '      limit ?, ?) as art ' +
+      '      left outer join users as u on (art.user_id = u.user_id) ' +
+      'order by art_id desc';
+   let selectParams = [aes_key, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.pos_long, reqData.distance, reqData.pos_lat, reqData.pos_lat, reqData.distance, reqData.limit.former, reqData.limit.latter, reqData.user_id];
+
+   QueryFn.selectQueryFunction(selectQuery, selectParams, function (err, rows) {
+      if (err)
+         return callback(err);
+      callback(null, rows);
+   })
+}
+
 
 function selectArticlesByUserId(reqData, callback) {
    let selectQuery = 'select art_id, image_url, create_time ' +
@@ -70,13 +94,17 @@ function selectArticlesByUserId(reqData, callback) {
    })
 }
 
-function selectArticlesById(reqArt_id, callback) {
-   let select_query = 'select art.art_id, art.user_id, create_time, image_url, content, pos_lat, pos_long, num_likes, ' +
-                       'cast(aes_decrypt(user_name, unhex(sha2(@aes_key, 512))) as char) as user_name, profile_img_url ' +
+function selectArticlesById(reqData, callback) {
+   let select_query = 'select art.art_id, art.user_id, create_time, image_url, content, pos_lat, pos_long, num_likes, ifnull(liked, 0) as liked,' +
+                       'cast(aes_decrypt(user_name, unhex(sha2(@aes_key, 512))) as char) as user_name, profile_img_url, num_stroll ' +
                        'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "pos_lat", st_x(art_pos) as "pos_long", num_likes ' +
-                       'from articles ' +
-                       'where art_id = ?) as art left outer join users as u on (art.user_id = u.user_id)';
-   let select_params = [reqArt_id];
+                       '      from articles ' +
+                       '      where art_id = ?) as art ' +
+                       '     left outer join users as u on (art.user_id = u.user_id) ' +
+                       '     left outer join (select 1 as liked, art_id ' +
+                       '                       from likes  ' +
+                       '                       where user_id = ? and art_id = ? ) as li on (art.art_id = li.art_id) ';
+   let select_params = [reqData.art_id, reqData.user_id, reqData.art_id];
 
    QueryFn.selectQueryFunction(select_query, select_params, function (err, row) {
       if (err)
@@ -116,7 +144,6 @@ function likeArticleById(reqData, callback) {
    });
 }
 
-
 function unlikeArticleById(reqData, callback) {
    let query = {
       insertForLikes: 'delete ' +
@@ -146,7 +173,9 @@ function unlikeArticleById(reqData, callback) {
 
 module.exports.insertArticle = insertArticle;
 module.exports.selectArticles = selectArticles;
+module.exports.selectArticlesForMap = selectArticlesForMap;
 module.exports.selectArticlesByUserId = selectArticlesByUserId;
 module.exports.selectArticlesById = selectArticlesById;
 module.exports.likeArticleById = likeArticleById;
 module.exports.unlikeArticleById = unlikeArticleById;
+
