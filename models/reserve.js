@@ -19,7 +19,7 @@ function reserveStroll(reservData, callback) {
    QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
       if (err) {
          //if there is overlapped reservation return err with status code 400
-         if (err.status === 400) {
+         if (err.status === 405) {
             err.message = '중복된 예약 정보가 존재합니다.';
             err.stack = result;
             return callback(err);
@@ -95,6 +95,7 @@ function updateReserveStatus(rsvObj, callback) {
    function checkFn(err, rows, cb) {
       if (rows[0].status !== 'Pending'){
          err = new Error();
+         err.status = 406;
          return cb(err);
       }
       else
@@ -103,8 +104,13 @@ function updateReserveStatus(rsvObj, callback) {
 
    QueryFn.updateWithCheck(query, params, checkFn, function (err, result) {
       if (err) {
-         err.message = '산책 매칭에 실패했습니다.';
-         return callback(err);
+         if (err.status === 406){
+            err.message = '요청중인 산책이 아닙니다.';
+            return callback (err);
+         } else {
+            err.message = '산책 매칭에 실패했습니다.';
+            return callback(err);
+         }
       } else {
          callback(null);
       }

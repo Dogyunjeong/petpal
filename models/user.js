@@ -76,7 +76,7 @@ function updateUserProfile(reqUser, callback) {
 function selectUserbyKakaoId(kakao_id, callback) {
    let select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name,' +
                      'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile, ' +
-                     'age, gender, address, profile_img_url, points ' +
+                     'age, gender, address, profile_img_url, points, num_stroll ' +
                      'from users ' +
                      'where kakao_id = ?';
 
@@ -93,7 +93,7 @@ function selectUserbyKakaoId(kakao_id, callback) {
 function selectUserbyUserId(user_id, callback) {
    let select_user = 'select user_id, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, ' +
                      'cast(aes_decrypt(mobile, unhex(sha2(?, 512))) as char) as mobile,' +
-                     'age, gender, address, profile_img_url ' +
+                     'age, gender, address, profile_img_url, points, num_stroll ' +
                      'from users ' +
                      'where user_id = ?';
 

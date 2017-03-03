@@ -5,6 +5,11 @@ var Review = require('../models/review');
 const reviewListLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/:reserve_id', function(req, res, next) {
+   if (!req.body.stars || !req.body.content) {
+      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      err.status = 400;
+      return next(err);
+   }
    let reqReview = {
       reserve_id: req.params.reserve_id,
       reserve_user_id: req.user.user_id,
@@ -38,6 +43,7 @@ router.get('/:stroll_user_id', function(req, res, next) {
       } else {
          res.json({
             result: {
+               page: reqData.p,
                data: rows
             }
          });

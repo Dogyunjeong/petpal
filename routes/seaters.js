@@ -3,12 +3,12 @@ var router = express.Router();
 var dummy = require('../models/dummy');
 var Seater = require('../models/seater');
 
-const seaterSearchDistance = process.env.SEATER_SERACH_DISTANCE;
+const searchDistance = process.env.SEARCH_DISTANCE;
 const seaterSearchLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/', function (req, res, next) {
    // check required data is coming then make object to send
-   if (!req.body.stroll_pos_lat || !req.body.stroll_pos_lat || !req.body.from_time || ! req.body.to_time) {
+   if (!req.body.stroll_pos_lat || !req.body.stroll_pos_long || !req.body.from_time || ! req.body.to_time) {
       var err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
@@ -24,14 +24,9 @@ router.post('/', function (req, res, next) {
       dog_neutralized: req.body.dog_neutralized || null
    };
 
-   Seater.insertSeater(reqSeater, function (err, rows) {
+   Seater.insertSeater(reqSeater, function (err,) {
       if (err){
-         if (err.status = 400){
-            return next(err);
-         } else {
-            err.message ='시터 등록에 실패했습니다.';
-            return next(err);
-         }
+         return next(err);
       } else {
          res.json({
             result: '시터 등록에 성공하였습니다.'
@@ -107,7 +102,7 @@ router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
    let searchData = {
       stroll_pos_lat: req.params.pos_lat,
       stroll_pos_long: req.params.pos_long,
-      distance: req.params.distance || + seaterSearchDistance,
+      distance: req.params.distance || + searchDistance,
       from_time: req.query.from_time || new Date(),
       to_time: req.query.to_time || null,
       dog_weight: isNaN(req.query.dog_weight) ? req.query.dog_weight : + req.query.dog_weight || null,

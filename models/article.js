@@ -23,8 +23,10 @@ function insertArticle(reqArticle, callback) {
    };
 
    QueryFn.eachOfQueryFunction(query, param, function (err, result) {
-      if (err)
+      if (err){
+         err.message = '게시글 작성에 실패하였습니다.';
          return callback(err);
+      }
       if (result.length === 0) {
          err = new Error('게시글 작성에 실패하였습니다.');
          return callback(err);
@@ -80,7 +82,7 @@ function selectArticlesForMap(reqData, callback) {
 
 
 function selectArticlesByUserId(reqData, callback) {
-   let selectQuery = 'select art_id, image_url, create_time ' +
+   let selectQuery = 'select art_id, image_url ' +
                       'from articles ' +
                       'where user_id = ? ' +
                       'order by art_id desc ' +
@@ -96,7 +98,7 @@ function selectArticlesByUserId(reqData, callback) {
 
 function selectArticlesById(reqData, callback) {
    let select_query = 'select art.art_id, art.user_id, create_time, image_url, content, pos_lat, pos_long, num_likes, ifnull(liked, 0) as liked,' +
-                       'cast(aes_decrypt(user_name, unhex(sha2(@aes_key, 512))) as char) as user_name, profile_img_url, num_stroll ' +
+                       'cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as user_name, profile_img_url, num_stroll ' +
                        'from (select art_id, user_id, create_time, image_url, content, st_y(art_pos) as "pos_lat", st_x(art_pos) as "pos_long", num_likes ' +
                        '      from articles ' +
                        '      where art_id = ?) as art ' +
@@ -104,11 +106,13 @@ function selectArticlesById(reqData, callback) {
                        '     left outer join (select 1 as liked, art_id ' +
                        '                       from likes  ' +
                        '                       where user_id = ? and art_id = ? ) as li on (art.art_id = li.art_id) ';
-   let select_params = [reqData.art_id, reqData.user_id, reqData.art_id];
+   let select_params = [aes_key, reqData.art_id, reqData.user_id, reqData.art_id];
 
    QueryFn.selectQueryFunction(select_query, select_params, function (err, row) {
-      if (err)
+      if (err){
+         err.message = '개인 타임라인 목록을 가져오는데 실패하였습니다.';
          return callback(err);
+      }
       if (row.length !== 1){
          err = new Error();
          return callback(err);

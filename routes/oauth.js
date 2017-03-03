@@ -18,7 +18,7 @@ passport.serializeUser(function(user, done) {
    done(null, user.user_id);
 });
 passport.deserializeUser(function(user_id, done) {
-   Oauth.findKakaoUser(user_id, function (err, user) {
+   Oauth.findUser(user_id, function (err, user) {
       if (err)
          return done(err);
       done(null, user);
@@ -32,7 +32,7 @@ passport.use( new KakaoStrategy({
    function(accessToken, refreshToken, params, profile, done){
       // authorization 에 성공했을때의 액션
       profile.accessToken = accessToken;
-      Oauth.authorizeKakao(profile, function (err, user, joinFlag) {
+      Oauth.findUserAndCreateByKakao(profile, function (err, user, joinFlag) {
          if (err)
             return done(err, null);
          if (joinFlag)
@@ -50,7 +50,7 @@ passport.use( new KakaoTokenStrategy({
    function(accessToken, refreshToken, profile, done){
       // authorization 에 성공했을때의 액션
       profile.accessToken = accessToken;
-      Oauth.authorizeKakao(profile, function (err, user, joinFlag) {
+      Oauth.findUserAndCreateByKakao(profile, function (err, user, joinFlag) {
          if (err)
             return done(err, null);
          if (joinFlag)
@@ -77,7 +77,7 @@ router.get("/kakaotalk/callback", passport.authenticate('kakao'), function(req, 
    }
 });
 
-router.get('/kakaotalk/token', passport.authenticate('kakao-token', {failure: 'https://localhost/callback'}), function(req, res) {
+router.get('/kakaotalk/token', passport.authenticate('kakao-token'), function(req, res) {
    if (req.user) {
       if (reqJoinFlag > 0) {
          reqJoinFlag = 0;

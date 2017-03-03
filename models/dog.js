@@ -136,7 +136,7 @@ function insertDogProfile (reqDog, callback) {
          // 중복된 반려견 이름이 존재할 경우에 대한 err 처리
          if (err.code === "ER_DUP_ENTRY") {
             err = new Error("중복된 이름의 반려견이 존재합니다.");
-            err.status = 400;
+            err.status = 406;
             S3.deleteObject({
                Bucket: s3Bucket,
                Key: reqDog.dog_profile_img_url.split('com/')[1]
@@ -186,10 +186,10 @@ function selectDogProfile(reqDog, callback) {
                     'where user_id = ? and dog_name = aes_encrypt(?, unhex(sha2(?, 512)))';
    let  selectParams = [aes_key, reqDog.user_id, reqDog.dog_name, aes_key];
 
-   selectQueryFunction(selectQuery, selectParams, function (err, row) {
+   selectQueryFunction(selectQuery, selectParams, function (err, roww) {
       if (err)
          return next(err);
-      callback(null, row);
+      callback(null, roww);
    })
 
 }
@@ -222,11 +222,11 @@ function updateDogProfile(reqDog, callback) {
    // 2. updateQuery
    updateQueryFunction(query, params, function (err) {
       if (err) {
-         if (err.status === 400) {
+         if (err.status === 405) {
             err.message = "해당 반려견이 존재 하지 않습니다."
          }
-         if (err.code = "ER_DUP_ENTRY") {
-            err.status = 400;
+         if (err.code === "ER_DUP_ENTRY") {
+            err.status = 406;
             err.message = "중복된 반려견이 존재 합니다."
          }
          S3.deleteObject({
@@ -277,7 +277,7 @@ function deleteDogProfile(reqDog, callback) {
 
    deleteQueryFunction(query, params, function (err) {
       if (err) {
-         err = new Error("반려견 정보 삭제에 실패했습니다.");
+         err.message = "반려견 정보 삭제에 실패했습니다.";
          return callback(err);
       } else {
          S3.deleteObject({

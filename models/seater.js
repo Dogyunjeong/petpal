@@ -17,12 +17,13 @@ function insertSeater(reqSeater, callback) {
    };
    QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
       if (err) {
-         if (err.status === 400) {
+         if (err.status === 405) {
             err.message = '중복된 산책 정보가 존재합니다.';
             err.stack = result;
             return callback(err);
          }
          else {
+            err.message = '시터 등록에 실패했습니다.';
             return callback(err);
          }
       } else {
@@ -56,8 +57,8 @@ function updateSeater(reqSeater, callback) {
    };
    QueryFn.updateWithCheckNotExist(query, params, function (err, result) {
       if (err) {
-         if (err.status = 400) {
-            err.message = '시터 정보 변경에 실패했습니다.';
+         if (err.status = 405) {
+            err.message = '중복된 산책 정보가 존재합니다.';
             err.stack = result;
             return callback(err);
          } else {
@@ -78,21 +79,21 @@ function deleteSeater(reqSeater, callback) {
 
    QueryFn.deleteQueryFunction(deleteQuery, deleteParams, function (err, result) {
       if (err) {
-         if (err.status = 400) {
-            err.message = '요청한 시터 정보가 존재하지 않습니다.'
+         if (err.status = 406) {
+            err.message = '요청한 시터 정보가 존재하지 않습니다.';
             return callback(err);
          } else {
+            err.message = '시터 정보 삭제에 실패했습니다.';
             return callback(err);
          }
       }
-
       else
          callback(null, result);
    });
 }
 
 function selectSeater(reqSeater, callback) {
-   let selectQuery = 'select stroll_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time,' +
+   let selectQuery = 'select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time,' +
                       '       dog_weight, dog_gender, dog_neutralized ' +
                       'from strolls ' +
                       'where stroll_user_id = ? ' +
@@ -109,7 +110,7 @@ function selectSeater(reqSeater, callback) {
 
 function findSeaters(searchData, callback) {
    let queryParts = {
-      start :'select stroll_id, stroll_user_id, stroll_pos_lat , stroll_pos_long as "pos_long", from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url ' +
+      start :'select stroll_id, stroll_user_id, stroll_pos_lat , stroll_pos_long , from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url, age as stroll_user_age ' +
              'from (select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time, dog_weight, dog_gender, dog_neutralized, ' +
                    '6371 * acos(cos(radians(?)) * cos(radians(st_y(stroll_pos))) * cos(radians(st_x(stroll_pos)) - radians(?)) + sin(radians(?)) * sin(radians(st_y(stroll_pos)))) as distance ' +
                    'from strolls ' +

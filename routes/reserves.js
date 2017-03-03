@@ -6,6 +6,11 @@ var Reserve = require('../models/reserve');
 const reservationListLimt = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 router.post('/:stroll_id/request', function(req, res, next) {
+   if(!req.body.stroll_user_id || !req.body.dog_name  || !req.body.from_time ||!req.body.to_time ) {
+      var err = new Error('필수 정보가 오지 않았습니다.');
+      err.status = 400;
+      return next(err);
+   }
    let reserveData = {
       reserve_user_id: req.user.user_id,
       reserve_dog_name: req.body.dog_name,
@@ -84,10 +89,6 @@ router.get('/:reserve_id/response/:status', function(req, res, next) {
 });
 
 router.delete('/:reserve_id', function(req, res, next) {
-   var resultMsg = "예약된 산책 취소에 성공하였습니다.";
-   var errMsg = "예약된 산책 취소에 실패했습니다.";
-   //reqObj own the data which is sent from user
-
 
    if (!req.body.stroll_user_id || !req.body.reserve_user_id || !req.body.stroll_id || !req.body.reserve_dog_name) {
       var err = new Error('필요 정보가 누락 되었습니다.');
@@ -100,6 +101,7 @@ router.delete('/:reserve_id', function(req, res, next) {
       err.status = 403;
       return next(err);
    }
+   //reqObj own the data which is sent from user
    let reqObj = {
       reserve_id: + req.params.reserve_id,
       stroll_id: + req.body.stroll_id,

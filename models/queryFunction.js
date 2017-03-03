@@ -144,7 +144,7 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
             return callback(err);
          if (rows.affectedRows === 0) {
             err = new Error();
-            err.status = 400;
+            err.status = 406;
             return callback(err)
          } else {
             callback(null)
@@ -166,7 +166,7 @@ function insertWithCheckNotExist(query, params, callback) {
                return cb(err);
             if(rows.length) {
                err = new Error();
-               err.status = 400;
+               err.status = 405;
                cb(err, rows);
             } else {
                cb(null, null);
@@ -269,7 +269,7 @@ function updateWithCheckNotExist(query, params, callback) {
                return cb(err);
             if (rows.length) {
                err = new Error();
-               err.status = 400;
+               err.status = 405;
                return cb(err, rows);
             } else {
                cb(null, null);

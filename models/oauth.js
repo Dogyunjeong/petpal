@@ -4,7 +4,7 @@ var QueryFn = require('./queryFunction');
 
 const aes_key = process.env.AES_KEY;
 
-function authorizeKakao(profile, callback) {
+function findUserAndCreateByKakao(profile, callback) {
    let query = {
       selectQuery: 'select user_id ' +
                    'from users ' +
@@ -114,7 +114,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
 
 }
 
-function findKakaoUser(user_id, callback) {
+function findUser(user_id, callback) {
    var select_user_for_check = 'select user_id, kakao_id ' +
                                'from users ' +
                                'where user_id = ?';
@@ -132,6 +132,6 @@ function findKakaoUser(user_id, callback) {
 
 
 
-module.exports.authorizeKakao = authorizeKakao;
+module.exports.findUserAndCreateByKakao = findUserAndCreateByKakao;
 module.exports.findKakaoUserAndCreate = findKakaoUserAndCreate;
-module.exports.findKakaoUser = findKakaoUser;
+module.exports.findUser = findUser;

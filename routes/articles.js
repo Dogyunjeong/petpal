@@ -154,7 +154,7 @@ router.get('/:art_id/details', function(req, res, next) {
          return next(err);
       res.json({
          result: {
-            data: rows
+            data: rows[0]
          }
       });
    });
