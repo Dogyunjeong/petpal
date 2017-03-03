@@ -109,8 +109,8 @@ function selectSeater(reqSeater, callback) {
 
 function findSeaters(searchData, callback) {
    let queryParts = {
-      start :'select stroll_id, stroll_user_id, lat , stroll_pos_long as "long", from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url ' +
-             'from (select stroll_id, stroll_user_id, st_y(stroll_pos) as lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time, dog_weight, dog_gender, dog_neutralized, ' +
+      start :'select stroll_id, stroll_user_id, stroll_pos_lat , stroll_pos_long as "pos_long", from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url ' +
+             'from (select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time, dog_weight, dog_gender, dog_neutralized, ' +
                    '6371 * acos(cos(radians(?)) * cos(radians(st_y(stroll_pos))) * cos(radians(st_x(stroll_pos)) - radians(?)) + sin(radians(?)) * sin(radians(st_y(stroll_pos)))) as distance ' +
                    'from strolls ' +
                    'where mbrcontains(envelope(linestring(point((? + (? / abs(cos(radians(?)) * 111.2))), (? + (? /111.2))), ' +

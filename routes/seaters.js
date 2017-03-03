@@ -103,10 +103,10 @@ router.delete('/:stroll_id', function (req, res, next) {
 
 });
 
-router.get('/lat/:lat/long/:long', function (req, res, next) {
+router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
    let searchData = {
-      stroll_pos_lat: req.params.lat,
-      stroll_pos_long: req.params.long,
+      stroll_pos_lat: req.params.pos_lat,
+      stroll_pos_long: req.params.pos_long,
       distance: req.params.distance || + seaterSearchDistance,
       from_time: req.query.from_time || new Date(),
       to_time: req.query.to_time || null,

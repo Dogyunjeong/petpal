@@ -5,7 +5,7 @@ var multerS3 = require('multer-s3');
 var AWS = require('aws-sdk');
 var s3Config = require('../config/aws_s3');
 var logger = require('../common/logger');
-var incomingCheck = require('../models/incomingCheck');
+var incomingCheck = require('../models/logging').incomingCheck;
 
 var Dog = require('../models/dog');
 

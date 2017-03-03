@@ -7,9 +7,9 @@ var bodyParser = require('body-parser');
 var app = express();
 
 var index = require('./routes/index');
-var users = require('./routes/users');
 var oauth = require('./routes/oauth');
 var terms = require('./routes/terms');
+var users = require('./routes/users');
 var dogs = require('./routes/dogs');
 var articles = require('./routes/articles');
 var seaters = require('./routes/seaters');
@@ -19,7 +19,7 @@ var reports = require('./routes/reports');
 
 var mySecurity = require('./common/security');
 var winstonlogger = require('./common/logger');
-var incomingCheck = require('./models/incomingCheck');
+var logging = require('./models/logging');
 
 
 
@@ -64,7 +64,7 @@ app.use(passport.session());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(incomingCheck);
+app.use(logging.incomingCheck);
 
 
 app.use('/', index);

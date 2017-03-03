@@ -6,7 +6,7 @@ var router = express.Router();
 
 var s3Config = require('../config/aws_s3');
 var User = require('../models/user');
-var incomingCheck = require('../models/incomingCheck');
+var logging = require('../models/logging');
 
 const listLimit = process.env.TEXT_LIMIT;
 
@@ -29,7 +29,7 @@ var upload = multer({
    })
 });
 
-router.post('/', upload.single('profile_image'), incomingCheck, function(req, res, next) {
+router.post('/', upload.single('profile_image'), logging.incomingCheck, function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
@@ -39,7 +39,7 @@ router.post('/', upload.single('profile_image'), incomingCheck, function(req, re
       return next(err);
    }
    if (!req.file)
-      req.file = {location: null}
+      req.file = {location: null};
    var reqUser = {
       user_id: req.user.user_id,
       mobile: req.body.mobile || null,

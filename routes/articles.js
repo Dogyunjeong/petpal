@@ -32,7 +32,7 @@ const articleSerachLimit = process.env.ARTICLE_SERACH_LIMIT;
 const feedImgListLimt = process.env.FEED_IMG_LIST_LIMIT;
 
 router.post('/', upload.single('image'), function(req, res, next) {
-   if (!req.file || !req.body.content || !req.body.lat || !req.body.long) {
+   if (!req.file || !req.body.content || !req.body.pos_lat || !req.body.pos_long) {
       var  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
@@ -42,8 +42,8 @@ router.post('/', upload.single('image'), function(req, res, next) {
       image_url: req.file.location,
       content: req.body.content,
       position: {
-         lat:  + req.body.lat,
-         long: + req.body.long
+         lat:  + req.body.pos_lat,
+         long: + req.body.pos_long
       }
    };
    Article.insertArticle(reqArticle, function (err, result) {
@@ -55,9 +55,9 @@ router.post('/', upload.single('image'), function(req, res, next) {
    });
 });
 
-router.get('/lat/:lat/long/:long', function(req, res, next) {
+router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
 
-   if (!req.params.lat || !req.params.long) {
+   if (!req.params.pos_lat || !req.params.pos_long) {
       var err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
@@ -119,36 +119,6 @@ router.get('/:art_id/details', function(req, res, next) {
          result: {
             data: rows
          }
-      });
-   });
-});
-
-router.get('/:art_id/like', function(req, res, next) {
-   let reqData = {
-      art_id: req.params.art_id,
-      user_id: req.user.user_id
-   };
-
-   Article.likeArticleById(reqData, function (err, rows) {
-      if (err)
-         return next(err);
-      res.json({
-         result: '좋아요에 성공하였습니다.'
-      });
-   });
-});
-
-router.get('/:art_id/unlike', function(req, res, next) {
-   let reqData = {
-      art_id: req.params.art_id,
-      user_id: req.user.user_id
-   };
-
-   Article.unlikeArticleById(reqData, function (err, rows) {
-      if (err)
-         return next(err);
-      res.json({
-         result: '좋아요 취소에 성공하였습니다.'
       });
    });
 });
