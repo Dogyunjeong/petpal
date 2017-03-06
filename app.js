@@ -8,7 +8,7 @@ var app = express();
 
 var index = require('./routes/index');
 var oauth = require('./routes/oauth');
-var terms = require('./routes/terms');
+var notices = require('./routes/notices');
 var users = require('./routes/users');
 var dogs = require('./routes/dogs');
 var articles = require('./routes/articles');
@@ -66,12 +66,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(logging.incomingCheck);
 
+app.use(mySecurity.isSecure);
 
 app.use('/', index);
-app.use('/terms', terms);
+app.use('/notices', notices);
 app.use('/oauth', oauth);
 
-app.use(mySecurity.isSecure);
+app.use(mySecurity.isLoggedIn);
 
 app.use('/users',  users);
 app.use('/dogs', dogs);

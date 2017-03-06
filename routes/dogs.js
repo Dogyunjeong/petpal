@@ -39,11 +39,11 @@ router.post('/', upload.single('dog_profile_img'), incomingCheck, function(req, 
       user_id: req.user.user_id,
       dog_profile_img_url:  (req.file && req.file.location) || req.file.location || null,
       dog_name: req.body.dog_name,
-      dog_gender: req.body.dog_gender,
       dog_age: req.body.dog_age,
       dog_type: req.body.dog_type || null ,
-      dog_weight: req.body.dog_weight || null ,
-      dog_neutralized: req.body.dog_neutralized ,
+      dog_weight: isNaN(req.body.dog_weight) ? (req.body.dog_weight === '무관' ? null : req.body.dog_weight ) : + req.body.dog_weight || null,
+      dog_gender: isNaN(req.body.dog_gender) ? (req.body.dog_gender === '무관' ? null : req.body.dog_gender ) : + req.body.dog_gender,
+      dog_neutralized: isNaN(req.body.dog_neutralized) ?  (req.body.dog_neutralized === '무관' ? null : req.body.dog_neutralized ) : + req.body.dog_neutralized,
       dog_characters: req.body.dog_characters || null ,
       dog_significants: req.body.dog_significants || null
    };
@@ -103,9 +103,9 @@ router.put('/:dog_name', upload.single('dog_profile_img'), incomingCheck, functi
       dog_gender: req.body.dog_gender || null,
       dog_age: req.body.dog_age || null ,
       dog_type: req.body.dog_type || null ,
-      dog_weight: req.body.dog_weight || null ,
-      dog_neutralized: req.body.dog_neutralized ,
-      dog_characters: req.body.dog_characters || null ,
+      dog_weight: isNaN(req.query.dog_weight) ? (req.query.dog_weight === '무관' ? null : req.query.dog_weight ) : + req.query.dog_weight || null,
+      dog_gender: isNaN(req.query.dog_gender) ? (req.query.dog_gender === '무관' ? null : req.query.dog_gender ) : + req.query.dog_gender || null,
+      dog_neutralized: isNaN(req.query.dog_neutralized) ?  (req.query.dog_neutralized === '무관' ? null : req.query.dog_neutralized ) : + req.query.dog_neutralized || null,
       dog_significants: req.body.dog_significants || null
    };
 

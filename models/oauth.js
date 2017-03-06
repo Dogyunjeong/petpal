@@ -2,6 +2,7 @@ var dbPool = require('../common/dbPool');
 var async = require('async');
 var QueryFn = require('./queryFunction');
 
+var logging =require('../common/logging');
 const aes_key = process.env.AES_KEY;
 
 function findUserAndCreateByKakao(profile, callback) {
@@ -86,7 +87,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
       }
 
       function insertOrUpdateUser(queryData, nextCallback) {
-         conn.query(queryData.query, queryData.parameters, function (err, rows) {
+         conn.query(queryData.query, queryData.parameters, logging.logSql, function (err, rows) {
             if (err || rows.affectedRows == 0)
                return nextCallback(err);
             if (rows.insultId)

@@ -11,6 +11,8 @@ var dummy = require('../models/dummy');
 var kakaoConfig = require('../config/kakao_oauth');
 var Oauth = require('../models/oauth');
 
+
+
 let reqJoinFlag = 0;
 
 
@@ -82,11 +84,18 @@ router.get('/kakaotalk/token', passport.authenticate('kakao-token'), function(re
       if (reqJoinFlag > 0) {
          reqJoinFlag = 0;
          res.status(201).json({
-            result :  "회원 가입이 필요한 사용자입니다."
+            result : {
+               message:  "회원 가입이 필요한 사용자입니다.",
+               requested_user_id: req.user.user_id
+            }
          });
       } else {
          res.json({
-            result :  "등록된 사용자입니다."
+            result : {
+               message:   "등록된 사용자입니다.",
+               requested_user_id: req.user.user_id
+            }
+
          });
       }
    } else {

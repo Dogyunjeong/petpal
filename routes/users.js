@@ -55,10 +55,7 @@ router.post('/', upload.single('profile_image'), logging.incomingCheck, function
          return next(err);
       } else {
          res.json({
-            result: {
-               message: resultMsg,
-               data: user
-            }
+            result: resultMsg
          })
       }
    });

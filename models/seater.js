@@ -4,10 +4,10 @@ const aes_key = process.env.AES_KEY;
 
 function insertSeater(reqSeater, callback) {
    let query = {
-      selectQuery: 'select stroll_id, stroll_user_id, st_y(stroll_pos), st_y(stroll_pos), from_time, to_time, dog_weight, dog_gender, dog_neutralized ' +
+      selectQuery: 'select stroll_id, stroll_user_id, st_y(stroll_pos), st_x(stroll_pos), from_time, to_time, dog_weight, dog_gender, dog_neutralized ' +
                    'from strolls ' +
                    'where stroll_user_id = ? and ? > from_time and ? < to_time ',
-      insertQuery: 'insert strolls (stroll_user_id, stroll_pos, from_time, to_time, dog_weight, dog_gender, dog_neutralized) ' +
+      insertQuery: 'insert into strolls (stroll_user_id, stroll_pos, from_time, to_time, dog_weight, dog_gender, dog_neutralized) ' +
                    'values (?, point(?, ?), ?, ?, ?, ?, ?)'
    };
    let params = {
@@ -93,8 +93,8 @@ function deleteSeater(reqSeater, callback) {
 }
 
 function selectSeater(reqSeater, callback) {
-   let selectQuery = 'select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time,' +
-                      '       dog_weight, dog_gender, dog_neutralized ' +
+   let selectQuery = 'select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long,  date_format(from_time, "%Y-%m-%d %H:%i:%S") as from_time, date_format(to_time, "%Y-%m-%d %H:%i:%S") as to_time, ' +
+                      '       ifnull(dog_weight, \'무관\') as dog_weight, ifnull(dog_gender, \'무관\') as dog_gender, ifnull(dog_neutralized, \'무관\') as dog_neutralized ' +
                       'from strolls ' +
                       'where stroll_user_id = ? ' +
                       'order by from_time ' +
@@ -110,7 +110,8 @@ function selectSeater(reqSeater, callback) {
 
 function findSeaters(searchData, callback) {
    let queryParts = {
-      start :'select stroll_id, stroll_user_id, stroll_pos_lat , stroll_pos_long , from_time, to_time, dog_weight, dog_gender, dog_neutralized, distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url, age as stroll_user_age ' +
+      start :'select stroll_id, stroll_user_id, stroll_pos_lat , stroll_pos_long , date_format(from_time, "%Y-%m-%d %H:%i:%S") as from_time, date_format(to_time, "%Y-%m-%d %H:%i:%S") as to_time, ifnull(dog_weight, \'무관\') as dog_weight, ifnull(dog_gender, \'무관\') as dog_gender, ifnull(dog_neutralized, \'무관\') as dog_neutralized,' +
+             '       distance, cast(aes_decrypt(user_name, unhex(sha2(?, 512))) as char) as stroll_user_name, profile_img_url as stroll_user_profile_img_url, age as stroll_user_age ' +
              'from (select stroll_id, stroll_user_id, st_y(stroll_pos) as stroll_pos_lat , st_x(stroll_pos) as stroll_pos_long, from_time, to_time, dog_weight, dog_gender, dog_neutralized, ' +
                    '6371 * acos(cos(radians(?)) * cos(radians(st_y(stroll_pos))) * cos(radians(st_x(stroll_pos)) - radians(?)) + sin(radians(?)) * sin(radians(st_y(stroll_pos)))) as distance ' +
                    'from strolls ' +

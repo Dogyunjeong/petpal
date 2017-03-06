@@ -29,7 +29,7 @@ router.post('/:reserve_id', function(req, res, next) {
 router.get('/:stroll_user_id', function(req, res, next) {
    let reqData = {
       stroll_user_id: req.params.stroll_user_id,
-      p: req.query.p || 1,
+      p: + req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * reviewListLimit || 0,
          latter: + reviewListLimit

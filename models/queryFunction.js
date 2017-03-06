@@ -1,12 +1,13 @@
 var dbPool = require('./../common/dbPool');
 var async = require('async');
 var logger = require('../common/logger');
+var logging = require('../common/logging');
 
 function eachOfQueryFunction(queries, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
-      else if (Object.keys(queries).length === 1) {
+      else if ( typeof queries !== 'object' || Object.keys(queries).length === 1) {
          conn.query(queries, params, function (err, result) {
             conn.release();
             if (err || !result) {
@@ -15,10 +16,9 @@ function eachOfQueryFunction(queries, params, callback) {
             callback(null, result)
          });
       } else {
-         var eachResult = []
+         var eachResult = [];
          conn.beginTransaction(function (err) {
             if (err){
-               conn.release();
                return callback(err);
             }
             function iterateQuery(value, key, cb) {
@@ -78,7 +78,8 @@ function selectQueryFunction(selectQuery, selectParams, callback) {
          if (err)
             return callback(err);
          // call the callback
-         callback(null, rows, fields);
+         else
+            callback(null, rows, fields);
       });
    });
 }
@@ -90,6 +91,7 @@ function updateQueryFunction(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
       function selectQueryForUpdate(nextCallback) {
          conn.query(query.selectQuery, params.selectParams, function (err, rows, fields) {
+            logging.logSql(this);
             if (err)
                return callback(err);
             if (rows.length !== 1){
@@ -117,6 +119,7 @@ function updateQueryFunction(query, params, callback) {
       //Create update function for async.waterfall.
       function updateQueryAfterSelect(updateParams, nextCallback) {
          conn.query(query.updateQuery, updateParams, function (err, rows, fields) {
+            logging.logSql(this);
             if (err || rows.affectedRows !== 1)
                return nextCallback(err);
             nextCallback(null, updateParams);
@@ -139,6 +142,7 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
    dbPool.getConnection(function (err, conn) {
       // delete info from table
       conn.query(deleteQuery, deleteParams, function (err, rows, fileds) {
+         logging.logSql(this);
          conn.release();
          if (err)
             return callback(err);
@@ -265,6 +269,7 @@ function updateWithCheckNotExist(query, params, callback) {
       //Check there is overlap the stroll except the requested one
       function check(cb) {
          conn.query(query.selectForCheckQuery, params.selectForCheckParams, function (err, rows) {
+            logging.logSql(this);
             if (err)
                return cb(err);
             if (rows.length) {
@@ -282,6 +287,7 @@ function updateWithCheckNotExist(query, params, callback) {
          let updateParams = [];
          function selectQueryForUpdate(nextCallback) {
             conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+               logging.logSql(this);
                if (err)
                   return cb(err);
                if (rows.length !== 1){
@@ -309,6 +315,7 @@ function updateWithCheckNotExist(query, params, callback) {
          //Create update function for async.waterfall.
          function updateQueryAfterSelect(updateParams, nextCallback) {
             conn.query(query.updateQuery, updateParams, function (err, rows) {
+               logging.logSql(this);
                if (err || rows.affectedRows !== 1)
                   return nextCallback(err);
                nextCallback(null, updateParams);
@@ -362,6 +369,7 @@ function makeQueryThenDo(queryParts, paramParts, callback) {
          if (err)
             return callback(err);
          conn.query(query, params, function (err, rows, fields) {
+            logging.logSql(this);
             conn.release();
             if (err)
                return callback(err);
@@ -381,6 +389,7 @@ function updateWithCheck(query, params, checkFn, callback) {
       let updateParams = [];
       function selectQueryForUpdate(nextCallback) {
          conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+            logging.logSql(this);
             if (err)
                return nextCallback(err);
             if (rows.length !== 1){
@@ -415,6 +424,7 @@ function updateWithCheck(query, params, checkFn, callback) {
       //Create update function for async.waterfall.
       function updateQueryAfterSelect(updateParams, nextCallback) {
          conn.query(query.updateQuery, updateParams, function (err, rows) {
+            logging.logSql(this);
             if (err || rows.affectedRows !== 1)
                return nextCallback(err);
             nextCallback(null, updateParams);

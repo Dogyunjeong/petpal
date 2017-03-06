@@ -1,11 +1,11 @@
 var dbPool = require('../common/dbPool');
 var async = require('async');
 
-// the function to get terms
+// the function to get notices
 function getTerms(callback) {
    // 1. create select_query
    let select_terms = "select * " +
-                       "from terms";
+                       "from notices";
    var resultData = {};
    // 2. get db connection and send query
    dbPool.getConnection(function (err, conn) {
