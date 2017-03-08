@@ -18,10 +18,14 @@ function insertQueryFunction(insertQuery, insertParams, callback) {
          return callback(err);
       conn.query(insertQuery, insertParams, function (err, result) {
          conn.release();
-         if (err || !result) {
+         if (err) {
             return callback(err);
+         } else if (!result) {
+            err = new Error();
+            return callback(err);
+         } else {
+            callback(null, result)
          }
-         callback(null, result)
       });
    });
 }
@@ -150,8 +154,10 @@ function insertDogProfile (reqDog, callback) {
             return callback(err);
          }
       } else if (result.affectedRows !==1) {
-            logger.log('info', 'Unexpected insert DogProfile error :  %j', reqDog);
-            return callback(err);
+         err = new Error();
+         err.message = "반려견 정보 등록에 실패했습니다.";
+         logger.log('info', 'Unexpected insert DogProfile error :  %j', reqDog);
+         return callback(err);
       } else {
          //err 가 없을경우 reqDog 과 result를 반환
          reqDog.result = result;

@@ -91,7 +91,7 @@ router.delete('/:stroll_id', function (req, res, next) {
       if (err)
          return next(err);
       res.json({
-         result: '시터 정보 삭제에성공하였습니다.'
+         result: '시터 정보 삭제에 성공하였습니다.'
       });
    });
 

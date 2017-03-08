@@ -21,6 +21,8 @@ var upload = multer({
    storage: multerS3({
       s3: S3,
       bucket: 'petpaldidimdol',
+      acl: 'public-read',
+      contentType: multerS3.AUTO_CONTENT_TYPE,
       metadata: function (req, file, cb) {
          cb(null, {fieldName: file.fieldname});
       },
@@ -33,7 +35,7 @@ var upload = multer({
 const articleSerachLimit = process.env.ARTICLE_SERACH_LIMIT;
 const feedImgListLimt = process.env.FEED_IMG_LIST_LIMIT;
 
-router.post('/', upload.single('image'), function(req, res, next) {
+router.post('/', upload.single('image'), incomingCheck, function(req, res, next) {
    if (!req.file || !req.body.content || !req.body.pos_lat || !req.body.pos_long) {
       var  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
@@ -69,7 +71,7 @@ router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
       user_id: req.user.user_id,
       pos_lat: req.params.pos_lat,
       pos_long: req.params.pos_long,
-      distance: searchDistance,
+      distance: req.query.distance || searchDistance,
       p: req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * articleSerachLimit || 0,
@@ -102,7 +104,7 @@ router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) 
       user_id: req.user.user_id,
       pos_lat: req.params.pos_lat,
       pos_long: req.params.pos_long,
-      distance: searchDistance,
+      distance: req.query.distance || searchDistance,
       p: req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * articleSerachLimit || 0,

@@ -6,8 +6,9 @@ var logging =require('../common/logging');
 const aes_key = process.env.AES_KEY;
 
 function findUserAndCreateByKakao(profile, callback) {
+   let reqJoinFlag = null;
    let query = {
-      selectQuery: 'select user_id ' +
+      selectQuery: 'select user_id, age ' +
                    'from users ' +
                    'where kakao_id = ?',
       insertQuery: 'insert users (kakao_id, kakao_token) ' +
@@ -23,6 +24,7 @@ function findUserAndCreateByKakao(profile, callback) {
    };
    function process(rows, cb) {
       params.updateParams.push(rows[0].user_id);
+      rows[0].age ? reqJoinFlag = null : reqJoinFlag = rows[0].user_id;
       cb();
    }
 
@@ -30,12 +32,14 @@ function findUserAndCreateByKakao(profile, callback) {
       var user = {};
       if (err) {
          return callback(err);
+
+         //check it is updated or not. if result === 0, it is updated.
       } else if (result === 0) {
          user = {
             user_id: params.updateParams[1],
             kakao_id: profile.id
          };
-         return callback(null, user);
+         return callback(null, user, reqJoinFlag ? reqJoinFlag : null);
       } else {
          user = {
             user_id: result.insertId,

@@ -158,6 +158,14 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
 
 }
 
+//check things first with async.each then do queries depend on its condition from checks
+//TODO 1 create first function of async.series for checks
+//TODO 1-1 create async.each
+//TODO 2 create second function of async.series to do queries
+//TODO 3 create callback of async.series to trim before send out by callback
+
+
+
 function insertWithCheckNotExist(query, params, callback) {
    // 1. DB 커넥션 획득
    dbPool.getConnection(function (err, conn) {
@@ -249,6 +257,7 @@ function insertIfNotExistOrUpdate(query, params, processFn, callback) {
       }
 
       function waterfallCallback(err, result) {
+         conn.release();
          if (err) {
             return callback(err);
          } else {
@@ -272,12 +281,12 @@ function updateWithCheckNotExist(query, params, callback) {
             logging.logSql(this);
             if (err)
                return cb(err);
-            if (rows.length) {
+            if (rows[0] && rows[0].length) {
                err = new Error();
                err.status = 405;
                return cb(err, rows);
             } else {
-               cb(null, null);
+               cb(null);
             }
          });
       }
@@ -334,7 +343,7 @@ function updateWithCheckNotExist(query, params, callback) {
 
       function lastCallback(err, result) {
          if (err) {
-            if (err.status = 400) {
+            if (err.status === 405) {
                return callback(err, result.one);
             } else {
                return callback(err);

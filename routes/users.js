@@ -20,6 +20,8 @@ var upload = multer({
    storage: multerS3({
       s3: S3,
       bucket: 'petpaldidimdol',
+      acl: 'public-read',
+      contentType: multerS3.AUTO_CONTENT_TYPE,
       metadata: function (req, file, cb) {
          cb(null, {fieldName: file.fieldname});
       },
@@ -29,7 +31,7 @@ var upload = multer({
    })
 });
 
-router.post('/', upload.single('profile_image'), logging.incomingCheck, function(req, res, next) {
+router.post('/', upload.single('profile_img'), logging.incomingCheck, function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
@@ -121,7 +123,7 @@ router.get('/:user_id', function(req, res, next) {
 router.get('/points/received', function(req, res, next) {
    let reqData = {
       user_id: req.user.user_id,
-      reqPage: + req.query.p || 0,
+      reqPage: + req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * listLimit || 0,
          latter: +listLimit
@@ -142,7 +144,7 @@ router.get('/points/received', function(req, res, next) {
 router.get('/points/used', function(req, res, next) {
    let reqData = {
       user_id: req.user.user_id,
-      reqPage: + req.query.p || 0,
+      reqPage: + req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * listLimit || 0,
          latter: +listLimit
@@ -159,8 +161,6 @@ router.get('/points/used', function(req, res, next) {
       });
    });
 });
-
-
 
 router.post('/img_list', function (req, res, next) {
    if (!req.body.img_list || !req.body.img_list[0]) {

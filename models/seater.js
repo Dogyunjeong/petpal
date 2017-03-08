@@ -57,7 +57,7 @@ function updateSeater(reqSeater, callback) {
    };
    QueryFn.updateWithCheckNotExist(query, params, function (err, result) {
       if (err) {
-         if (err.status = 405) {
+         if (err.status === 405) {
             err.message = '중복된 산책 정보가 존재합니다.';
             err.stack = result;
             return callback(err);
@@ -97,7 +97,7 @@ function selectSeater(reqSeater, callback) {
                       '       ifnull(dog_weight, \'무관\') as dog_weight, ifnull(dog_gender, \'무관\') as dog_gender, ifnull(dog_neutralized, \'무관\') as dog_neutralized ' +
                       'from strolls ' +
                       'where stroll_user_id = ? ' +
-                      'order by from_time ' +
+                      'order by from_time desc ' +
                       'limit ?, ?';
    let selectParams = [reqSeater.stroll_user_id, reqSeater.limit.former, reqSeater.limit.latter];
 

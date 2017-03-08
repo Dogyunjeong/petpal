@@ -25,6 +25,7 @@ function reserveStroll(reservData, callback) {
             return callback(err);
          }
          else {
+            err.message = '매칭 요청에 실패했습니다.';
             return callback(err);
          }
       } else {

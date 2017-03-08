@@ -131,7 +131,7 @@ function selectRecievedPoints(reqData, callback) {
 }
 
 function selectUsedPoints(reqData, callback) {
-   let selectQuery = 'select "stroll" as type, reserve_time as create_time, 10 as points ' +
+   let selectQuery = 'select "stroll" as type, reserve_time as create_time, -10 as points ' +
                      'from reservations ' +
                      'where reserve_user_id = ? and status = "Done" ' +
                      'order by create_time desc ' +

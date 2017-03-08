@@ -80,7 +80,6 @@ function selectArticlesForMap(reqData, callback) {
    })
 }
 
-
 function selectArticlesByUserId(reqData, callback) {
    let selectQuery = 'select art_id, image_url ' +
                       'from articles ' +
