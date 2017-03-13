@@ -35,11 +35,9 @@ router.post('/', upload.single('dog_profile_img'), incomingCheck, function(req, 
       err.status = 400;
       return next(err);
    }
-   if (!req.file)
-      req.file = { location: null };
    var reqDog = {
       user_id: req.user.user_id,
-      dog_profile_img_url:  (req.file && req.file.location) || req.file.location || null,
+      dog_profile_img_url:  (req.file && req.file.location) || null,
       dog_name: req.body.dog_name,
       dog_age: req.body.dog_age,
       dog_type: req.body.dog_type || null ,

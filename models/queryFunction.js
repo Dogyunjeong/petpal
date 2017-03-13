@@ -25,7 +25,10 @@ function eachOfQueryFunction(queries, params, callback) {
                conn.query(value, params[key], function (err, rows) {
                   if (err)
                      return cb(err);
-                  else {
+                  else if (rows.affectedRows === 0) {
+                     err = new Error();
+                     return cb(err);
+                  } else {
                      eachResult.push(rows);
                      cb();
                   }
@@ -68,8 +71,10 @@ function selectQueryFunction(selectQuery, selectParams, callback) {
    // get db connection
    dbPool.getConnection(function (err, conn) {
       // handle error from get db connection
-      if (err)
+      if (err) {
+         conn.release();
          return callback(err);
+      }
       //send query through connection
       conn.query(selectQuery, selectParams, function (err, rows, fields) {
          // release connection
@@ -158,14 +163,6 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
 
 }
 
-//check things first with async.each then do queries depend on its condition from checks
-//TODO 1 create first function of async.series for checks
-//TODO 1-1 create async.each
-//TODO 2 create second function of async.series to do queries
-//TODO 3 create callback of async.series to trim before send out by callback
-
-
-
 function insertWithCheckNotExist(query, params, callback) {
    // 1. DB 커넥션 획득
    dbPool.getConnection(function (err, conn) {
@@ -178,7 +175,7 @@ function insertWithCheckNotExist(query, params, callback) {
                return cb(err);
             if(rows.length) {
                err = new Error();
-               err.status = 405;
+               err.status = 406;
                cb(err, rows);
             } else {
                cb(null, null);
@@ -452,6 +449,111 @@ function updateWithCheck(query, params, checkFn, callback) {
 }
 
 
+/**send independent queries then do process. do transactions at last. // It doesn't condiered if queries['somthing'] has own properties.
+ * level 1 properties name must be same.
+ * @param queries = {check: {check1: ?, check2: ?....}, task: {task1: ?, task2: ?....}}
+ * @param paramas = {check: {check1: ?, check2: ?....},, task: {task1: ?, task2: ?....}}
+ * @param processFn = {check1: ?, check2: ?....}
+ * above params can contain object as check1...
+ * @param callback
+ */
+function doIndependentQueriesThenDoTransactions(queries, params, processFn, callback) {
+
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+      // 1 create first function of async.series for checks
+      function doIndependentQueries(seriesCallback) {
+         let resultOne = 1;
+         // 1-1 create async.each for check for each check queries
+         function independentIterate(value, key, eachOfCallback) {
+            conn.query(value, params.independent[key], function (err, rows, fields) {
+               if (err)
+                  return eachOfCallback(err);
+               // 1-3 trim with processFn
+               if (processFn && processFn.independent && processFn.independent[key]){
+                  processFn.independent[key](rows, fields, function (err) {
+                     if (err)
+                        return eachOfCallback(err);
+                     eachOfCallback(null);
+                  });
+               } else {
+                  eachOfCallback(null);
+               }
+            });
+         }
+         function eachOfCallback(err) {
+            if (err)
+               return seriesCallback(err);
+            seriesCallback(null, 1);
+         }
+         async.eachOf(queries.independent, independentIterate, eachOfCallback);
+      }
+      // 2 create second function of async.series to send queries
+      function doTransactions(seriesCallback) {
+         conn.beginTransaction(function (err) {
+            if (err)
+               return seriesCallback(err);
+            let resultTwo = 1;
+            function transactionIterate(value, key, eachOfCallback) {
+               conn.query(value, params.transaction[key], function (err, rows, fields) {
+                  if (err) {
+                     eachOfCallback(err);
+                  }
+                  if (processFn && processFn.transaction && processFn.transaction[key]){
+                     processFn.transaction[key](rows, fields, function (err) {
+                        if (err)
+                           return eachOfCallback(err);
+                        eachOfCallback(null);
+                     });
+                  } else {
+                     eachOfCallback(null);
+                  }
+               })
+            }
+            function eachOfCallback(err) {
+               if (err)
+                  return seriesCallback(err);
+               seriesCallback(null, resultTwo);
+            }
+            async.eachOf(queries.transaction, transactionIterate, eachOfCallback);
+         });
+      }
+      // 3 create callback of async.series to trim before send out by callback
+      function seriesCallback(err, result) {
+         if (err) {
+            if (result.one) {
+               conn.rollback(function () {
+                  conn.release();
+                  return callback(err);
+               });
+            } else {
+               conn.release();
+               return callback(err);
+            }
+         } else {
+            conn.commit(function (err) {
+               if (err) {
+                  conn.rollback(function () {
+                     conn.release();
+                     return callback(err);
+                  });
+               } else {
+                  if (processFn.resultFn) {
+                     processFn.resultFn(result, function (cbResult) {
+                        return callback(null, cbResult);
+                     });
+                  } else {
+                     return callback(null);
+                  }
+               }
+            });
+         }
+      }
+      async.series({ one: doIndependentQueries, two: doTransactions }, seriesCallback);
+   });
+}
+
 
 module.exports.eachOfQueryFunction = eachOfQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
@@ -462,3 +564,4 @@ module.exports.insertWithCheckNotExist = insertWithCheckNotExist;
 module.exports.updateWithCheckNotExist = updateWithCheckNotExist;
 module.exports.updateWithCheck = updateWithCheck;
 module.exports.makeQueryThenDo = makeQueryThenDo;
+module.exports.doIndependentQueriesThenDoTransactions = doIndependentQueriesThenDoTransactions;

@@ -40,7 +40,7 @@ function logSql(query) {
       // logger.log('error', '\t\tquery._callback.arguments[0]: %j', query._callback.arguments[0], {});
       logger.log('error', '\t\terr.errno: %d, err.message: %s', err.errno, err.message);
    }
-   return
+   return null;
 }
 
 module.exports.logRequest = logRequest;

@@ -2,11 +2,12 @@ var express = require('express');
 var router = express.Router();
 var dummy = require('../models/dummy');
 var Reserve = require('../models/reserve');
+var Validator = require('../common/validator');
 
 const reservationListLimt = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 //Create reservations after check there is no overlapped reservation and request period is in stroll period
-router.post('/:stroll_id/request', function(req, res, next) {
+router.post('/:stroll_id/request', Validator.reserveTimeValidator, function(req, res, next) {
    if(!req.body.stroll_user_id || !req.body.dog_name  || !req.body.from_time ||!req.body.to_time ) {
       var err = new Error('필수 정보가 오지 않았습니다.');
       err.status = 400;
@@ -95,33 +96,16 @@ router.get('/:reserve_id/response/:status', function(req, res, next) {
 });
 
 router.delete('/:reserve_id', function(req, res, next) {
-
-   if (!req.body.stroll_user_id || !req.body.reserve_user_id || !req.body.stroll_id || !req.body.reserve_dog_name) {
-      var err = new Error('필요 정보가 누락 되었습니다.');
-      err.status = 400;
-      return next(err);
-   }
-
-   if (req.user.user_id === +req.body.stroll_user_id || req.user.user_id === +req.body.reserve_user_id) {
-      //reqObj own the data which is sent from user
-      let reqObj = {
-         reserve_id: + req.params.reserve_id,
-         stroll_id: + req.body.stroll_id,
-         stroll_user_id: + req.body.stroll_user_id,
-         reserve_user_id: + req.body.reserve_user_id,
-         reserve_dog_name: req.body.reserve_dog_name
-      };
-      Reserve.cancelReserveStatus(reqObj,function (err) {
-         if (err)
-            return next(err);
-         else
-            res.json({result:'예약된 산책 취소에 성공하였습니다.'});
-      });
-   } else {
-      var err = new Error('산책을 취소할 권한이 없습니다.');
-      err.status = 403;
-      return next(err);
-   }
+   let reqObj = {
+      reserve_id: + req.params.reserve_id,
+      reqUser_id: req.user.user_id
+   };
+   Reserve.cancelReserveStatus(reqObj,function (err) {
+      if (err)
+         return next(err);
+      else
+         res.json({result:'예약된 산책 취소에 성공하였습니다.'});
+   });
 });
 
 

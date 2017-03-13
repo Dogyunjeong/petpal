@@ -58,6 +58,28 @@ router.get('/me', function (req, res, next) {
 
 });
 
+router.get('/:user_id', function (req, res, next) {
+   let reqSeater = {
+      stroll_user_id: req.params.user_id,
+      p: + req.query.p || 0,
+      limit: {
+         former: (req.query.p - 1) * 20 || 0,
+         latter: 20
+      }
+   };
+
+   Seater.selectSeater(reqSeater, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            data: rows
+         }
+      });
+   });
+
+});
+
 router.put('/:stroll_id', function (req, res, next) {
 
    let reqSeater = {
@@ -100,12 +122,11 @@ router.delete('/:stroll_id', function (req, res, next) {
 
 router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
 
-
    let searchData = {
       stroll_pos_lat: req.params.pos_lat,
       stroll_pos_long: req.params.pos_long,
-      distance: req.params.distance || + searchDistance,
       from_time: req.query.from_time || new Date(),
+      distance: + req.query.distance || + searchDistance,
       to_time: req.query.to_time || null,
       dog_weight: isNaN(req.query.dog_weight) ? (req.query.dog_weight === '무관' ? null : req.query.dog_weight ) : + req.query.dog_weight || null,
       dog_gender: isNaN(req.query.dog_gender) ? (req.query.dog_gender === '무관' ? null : req.query.dog_gender ) : + req.query.dog_gender || null,

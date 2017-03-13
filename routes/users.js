@@ -63,7 +63,7 @@ router.post('/', upload.single('profile_img'), logging.incomingCheck, function(r
    });
 });
 
-router.put('/', upload.single('profile_image'), function(req, res, next) {
+router.put('/', upload.single('profile_img'), function(req, res, next) {
    if (!req.file)
       req.file ={location: null};
 
@@ -91,8 +91,7 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
 router.get('/me', function(req, res, next) {
 
    User.selectUserbyUserId(req.user.user_id, function (err, user) {
-      if (err || !user) {
-         err.message("자신의 프로필을 불러오는데 실패했습니다.");
+      if (err) {
          return next(err);
       } else {
          res.json({
@@ -106,9 +105,9 @@ router.get('/me', function(req, res, next) {
 });
 
 router.get('/:user_id', function(req, res, next) {
+
    User.selectUserbyUserId(req.params.user_id, function (err, user) {
-      if (err || !user) {
-         err.message("사용자의 프로필을 불러오는데 실패했습니다.");
+      if (err) {
          return next(err);
       } else {
          res.json({
