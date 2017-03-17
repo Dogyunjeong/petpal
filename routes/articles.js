@@ -10,6 +10,8 @@ var logger = require('../common/logger');
 var incomingCheck = require('../models/incomingCheck');
 var Article = require('../models/article');
 
+const searchDistance = process.env.SEARCH_DISTANCE;
+
 var S3 = new AWS.S3({
    region : s3Config.region,
    accessKeyId: s3Config.accessKeyId,
@@ -19,6 +21,8 @@ var upload = multer({
    storage: multerS3({
       s3: S3,
       bucket: 'petpaldidimdol',
+      acl: 'public-read',
+      contentType: multerS3.AUTO_CONTENT_TYPE,
       metadata: function (req, file, cb) {
          cb(null, {fieldName: file.fieldname});
       },
@@ -31,8 +35,8 @@ var upload = multer({
 const articleSerachLimit = process.env.ARTICLE_SERACH_LIMIT;
 const feedImgListLimt = process.env.FEED_IMG_LIST_LIMIT;
 
-router.post('/', upload.single('image'), function(req, res, next) {
-   if (!req.file || !req.body.content || !req.body.lat || !req.body.long) {
+router.post('/', upload.single('image'), incomingCheck, function(req, res, next) {
+   if (!req.file || !req.body.content || !req.body.pos_lat || !req.body.pos_long) {
       var  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
@@ -42,8 +46,8 @@ router.post('/', upload.single('image'), function(req, res, next) {
       image_url: req.file.location,
       content: req.body.content,
       position: {
-         lat:  + req.body.lat,
-         long: + req.body.long
+         pos_lat:  + req.body.pos_lat,
+         pos_long: + req.body.pos_long
       }
    };
    Article.insertArticle(reqArticle, function (err, result) {
@@ -55,26 +59,25 @@ router.post('/', upload.single('image'), function(req, res, next) {
    });
 });
 
-router.get('/lat/:lat/long/:long', function(req, res, next) {
+router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
 
-   if (!req.params.lat || !req.params.long) {
+   if (!req.params.pos_lat || !req.params.pos_long) {
       var err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
    }
 
    let reqData = {
-      lat: req.params.lat,
-      long: req.params.long,
-      distance: null,
+      user_id: req.user.user_id,
+      pos_lat: req.params.pos_lat,
+      pos_long: req.params.pos_long,
+      distance: req.query.distance || searchDistance,
       p: req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * articleSerachLimit || 0,
          latter: + articleSerachLimit
       }
    };
-
-   reqData.distance = 5;
 
    Article.selectArticles(reqData, function (err, result) {
       if (err)
@@ -86,6 +89,38 @@ router.get('/lat/:lat/long/:long', function(req, res, next) {
          }
       })
 
+   });
+});
+
+router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
+
+   if (!req.params.pos_lat || !req.params.pos_long) {
+      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      err.status = 400;
+      return next(err);
+   }
+
+   let reqData = {
+      user_id: req.user.user_id,
+      pos_lat: req.params.pos_lat,
+      pos_long: req.params.pos_long,
+      distance: req.query.distance || searchDistance,
+      p: req.query.p || 1,
+      limit: {
+         former: (req.query.p - 1) * articleSerachLimit || 0,
+         latter: + articleSerachLimit
+      }
+   };
+
+   Article.selectArticlesForMap(reqData, function (err, result) {
+      if (err)
+         return next(err);
+      res.json({
+         result: {
+            page: reqData.p,
+            data: result
+         }
+      })
    });
 });
 
@@ -112,15 +147,50 @@ router.get('/users/:user_id', function(req, res, next) {
 });
 
 router.get('/:art_id/details', function(req, res, next) {
-   Article.selectArticlesById(req.params.art_id, function (err, rows) {
+   let reqData = {
+      art_id: req.params.art_id,
+      user_id: req.user.user_id
+   };
+   Article.selectArticlesById(reqData, function (err, rows) {
       if (err)
          return next(err);
       res.json({
          result: {
-            data: rows
+            data: rows[0]
          }
       });
    });
 });
+
+router.get('/:art_id/like', function(req, res, next) {
+   let reqData = {
+      art_id: req.params.art_id,
+      user_id: req.user.user_id
+   };
+   Article.likeArticleById(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: "좋아요에 성공했습니다."
+      });
+   });
+});
+
+router.get('/:art_id/unlike', function(req, res, next) {
+   let reqData = {
+      art_id: req.params.art_id,
+      user_id: req.user.user_id
+   };
+   Article.unlikeArticleById(reqData, function (err, rows) {
+      if (err)
+         return next(err);
+      res.json({
+         result: "좋아요 취소에 성공했습니다."
+      });
+   });
+});
+
+
+
 
 module.exports = router;

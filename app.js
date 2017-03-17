@@ -7,9 +7,9 @@ var bodyParser = require('body-parser');
 var app = express();
 
 var index = require('./routes/index');
-var users = require('./routes/users');
 var oauth = require('./routes/oauth');
-var terms = require('./routes/terms');
+var notices = require('./routes/notices');
+var users = require('./routes/users');
 var dogs = require('./routes/dogs');
 var articles = require('./routes/articles');
 var seaters = require('./routes/seaters');
@@ -19,7 +19,7 @@ var reports = require('./routes/reports');
 
 var mySecurity = require('./common/security');
 var winstonlogger = require('./common/logger');
-var incomingCheck = require('./models/incomingCheck');
+var logging = require('./models/logging');
 
 
 
@@ -64,11 +64,12 @@ app.use(passport.session());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(incomingCheck);
+app.use(logging.incomingCheck);
 
 app.use(mySecurity.isSecure);
+
 app.use('/', index);
-app.use('/terms', terms);
+app.use('/notices', notices);
 app.use('/oauth', oauth);
 
 app.use(mySecurity.isLoggedIn);
@@ -94,7 +95,8 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  winstonlogger.log('debug', 'error is occured :  %j', err);
+  winstonlogger.log('debug', '-------ERROR----------ERROR----------ERROR----------ERROR---');
+  winstonlogger.log('debug', '------Error is occurred :  %j', err);
   // render the error page
   res.status(err.status || 500);
   res.json({

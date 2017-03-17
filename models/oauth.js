@@ -2,34 +2,44 @@ var dbPool = require('../common/dbPool');
 var async = require('async');
 var QueryFn = require('./queryFunction');
 
+var logging =require('../common/logging');
 const aes_key = process.env.AES_KEY;
 
-function authorizeKakao(profile, callback) {
+function findUserAndCreateByKakao(profile, callback) {
+   let reqJoinFlag = null;
    let query = {
-      selectQuery: 'select user_id ' +
+      selectQuery: 'select user_id, age ' +
                    'from users ' +
                    'where kakao_id = ?',
       insertQuery: 'insert users (kakao_id, kakao_token) ' +
                    'values (?, ?)',
+      updateQuery: 'update users ' +
+                   'set kakao_token = ? ' +
+                   'where user_id = ?'
    };
    let params = {
       selectParams: [profile.id],
-      insertParams: [profile.id, profile.accessToken]
+      insertParams: [profile.id, profile.accessToken],
+      updateParams: [profile.accessToken]
    };
+   function process(rows, cb) {
+      params.updateParams.push(rows[0].user_id);
+      rows[0].age ? reqJoinFlag = null : reqJoinFlag = rows[0].user_id;
+      cb();
+   }
 
-   QueryFn.insertWithCheckNotExist(query, params, function (err, result) {
+   QueryFn.insertIfNotExistOrUpdate(query, params, process, function (err, result) {
       var user = {};
       if (err) {
-         if (err.status === 400) {
-            err = null;
-            user = {
-               user_id: result[0].user_id,
-               kakao_id: profile.id
-            };
-            return callback(null, user);
-         } else {
-            return callback(err);
-         }
+         return callback(err);
+
+         //check it is updated or not. if result === 0, it is updated.
+      } else if (result === 0) {
+         user = {
+            user_id: params.updateParams[1],
+            kakao_id: profile.id
+         };
+         return callback(null, user, reqJoinFlag ? reqJoinFlag : null);
       } else {
          user = {
             user_id: result.insertId,
@@ -37,7 +47,6 @@ function authorizeKakao(profile, callback) {
          };
          return callback(null, user, result.insertId);
       }
-
    });
 }
 
@@ -82,7 +91,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
       }
 
       function insertOrUpdateUser(queryData, nextCallback) {
-         conn.query(queryData.query, queryData.parameters, function (err, rows) {
+         conn.query(queryData.query, queryData.parameters, logging.logSql, function (err, rows) {
             if (err || rows.affectedRows == 0)
                return nextCallback(err);
             if (rows.insultId)
@@ -110,7 +119,7 @@ function findKakaoUserAndCreate(reqUser, callback) {
 
 }
 
-function findKakaoUser(user_id, callback) {
+function findUser(user_id, callback) {
    var select_user_for_check = 'select user_id, kakao_id ' +
                                'from users ' +
                                'where user_id = ?';
@@ -128,6 +137,6 @@ function findKakaoUser(user_id, callback) {
 
 
 
-module.exports.authorizeKakao = authorizeKakao;
+module.exports.findUserAndCreateByKakao = findUserAndCreateByKakao;
 module.exports.findKakaoUserAndCreate = findKakaoUserAndCreate;
-module.exports.findKakaoUser = findKakaoUser;
+module.exports.findUser = findUser;

@@ -1,26 +1,80 @@
 var dbPool = require('./../common/dbPool');
 var async = require('async');
+var logger = require('../common/logger');
+var logging = require('../common/logging');
 
-function insertQueryFunction(insertQuery, insertParams, callback) {
+function eachOfQueryFunction(queries, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
          return callback(err);
-      conn.query(insertQuery, insertParams, function (err, result) {
-         conn.release();
-         if (err || !result) {
-            return callback(err);
-         }
-         callback(null, result)
-      });
+      else if ( typeof queries !== 'object' || Object.keys(queries).length === 1) {
+         conn.query(queries, params, function (err, result) {
+            conn.release();
+            if (err || !result) {
+               return callback(err);
+            }
+            callback(null, result)
+         });
+      } else {
+         var eachResult = [];
+         conn.beginTransaction(function (err) {
+            if (err){
+               return callback(err);
+            }
+            function iterateQuery(value, key, cb) {
+               conn.query(value, params[key], function (err, rows) {
+                  if (err)
+                     return cb(err);
+                  else if (rows.affectedRows === 0) {
+                     err = new Error();
+                     return cb(err);
+                  } else {
+                     eachResult.push(rows);
+                     cb();
+                  }
+               });
+            }
+            function eachOfCb(err) {
+               if (err) {
+                  conn.rollback(function (connErr) {
+                     conn.release();
+                     if (connErr) {
+                        logger.log('info', 'Failed to rollback:   %j', eachResult);
+                        return callback(connErr);
+                     } else {
+                        return callback(err);
+                     }
+                  });
+               } else {
+                  conn.commit(function (connErr) {
+                     conn.release();
+                     if (connErr) {
+                        logger.log('info', 'Failed to commit:   %j', eachResult);
+                        return callback(connErr);
+                     } else {
+                        return callback(null, eachResult);
+                     }
+                  });
+               }
+
+            }
+            async.forEachOf(queries, iterateQuery, eachOfCb);
+
+         });
+      }
+
    });
 }
+
 // create selectQueryFunction
 function selectQueryFunction(selectQuery, selectParams, callback) {
    // get db connection
    dbPool.getConnection(function (err, conn) {
       // handle error from get db connection
-      if (err)
+      if (err) {
+         conn.release();
          return callback(err);
+      }
       //send query through connection
       conn.query(selectQuery, selectParams, function (err, rows, fields) {
          // release connection
@@ -29,7 +83,8 @@ function selectQueryFunction(selectQuery, selectParams, callback) {
          if (err)
             return callback(err);
          // call the callback
-         callback(null, rows, fields);
+         else
+            callback(null, rows, fields);
       });
    });
 }
@@ -41,6 +96,7 @@ function updateQueryFunction(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
       function selectQueryForUpdate(nextCallback) {
          conn.query(query.selectQuery, params.selectParams, function (err, rows, fields) {
+            logging.logSql(this);
             if (err)
                return callback(err);
             if (rows.length !== 1){
@@ -68,6 +124,7 @@ function updateQueryFunction(query, params, callback) {
       //Create update function for async.waterfall.
       function updateQueryAfterSelect(updateParams, nextCallback) {
          conn.query(query.updateQuery, updateParams, function (err, rows, fields) {
+            logging.logSql(this);
             if (err || rows.affectedRows !== 1)
                return nextCallback(err);
             nextCallback(null, updateParams);
@@ -90,12 +147,13 @@ function deleteQueryFunction(deleteQuery, deleteParams, callback) {
    dbPool.getConnection(function (err, conn) {
       // delete info from table
       conn.query(deleteQuery, deleteParams, function (err, rows, fileds) {
+         logging.logSql(this);
          conn.release();
          if (err)
             return callback(err);
          if (rows.affectedRows === 0) {
             err = new Error();
-            err.status = 400;
+            err.status = 406;
             return callback(err)
          } else {
             callback(null)
@@ -117,7 +175,7 @@ function insertWithCheckNotExist(query, params, callback) {
                return cb(err);
             if(rows.length) {
                err = new Error();
-               err.status = 400;
+               err.status = 406;
                cb(err, rows);
             } else {
                cb(null, null);
@@ -126,7 +184,7 @@ function insertWithCheckNotExist(query, params, callback) {
       }
 
       function insertFunction(cb) {
-         insertQueryFunction(query.insertQuery, params.insertParams, function (err, result) {
+         eachOfQueryFunction(query.insertQuery, params.insertParams, function (err, result) {
             if (err)
                return cb(err);
             cb(null, result);
@@ -154,6 +212,61 @@ function insertWithCheckNotExist(query, params, callback) {
    });
 }
 
+function insertIfNotExistOrUpdate(query, params, processFn, callback) {
+   // 1. DB 커넥션 획득
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+      // 2. Begin Transaction to rollback if there is result of selectQuery
+      function checkExistingWithSelect(cb) {
+         conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+            if (err)
+               return cb(err);
+            else if(rows.length) {
+               processFn(rows, function () {
+                  cb(null, 'update');
+               });
+            } else {
+               cb(null, 'insert');
+            }
+         });
+      }
+
+      function insertOrUpdate(checkResult, cb) {
+         if (checkResult === 'insert'){
+            conn.query(query.insertQuery, params.insertParams, function (err, result) {
+               if (err)
+                  return cb(err);
+               cb(null, result);
+            });
+         } else {
+            conn.query(query.updateQuery, params.updateParams, function (err, rows) {
+               if (err)
+                  return cb(err);
+               else if (rows.affectedRows !== 1) {
+                  err = new Error();
+                  return cb(err);
+               } else {
+                  cb(null, 0);
+               }
+            });
+         }
+      }
+
+      function waterfallCallback(err, result) {
+         conn.release();
+         if (err) {
+            return callback(err);
+         } else {
+            callback(null, result);
+         }
+      }
+      // 3. Use async.parallel to select and insert.
+      async.waterfall([checkExistingWithSelect, insertOrUpdate], waterfallCallback);
+
+   });
+}
+
 function updateWithCheckNotExist(query, params, callback) {
    dbPool.getConnection(function (err, conn) {
       if (err)
@@ -162,14 +275,15 @@ function updateWithCheckNotExist(query, params, callback) {
       //Check there is overlap the stroll except the requested one
       function check(cb) {
          conn.query(query.selectForCheckQuery, params.selectForCheckParams, function (err, rows) {
+            logging.logSql(this);
             if (err)
                return cb(err);
-            if (rows.length) {
+            if (rows[0] && rows[0].length) {
                err = new Error();
-               err.status = 400;
+               err.status = 405;
                return cb(err, rows);
             } else {
-               cb(null, null);
+               cb(null);
             }
          });
       }
@@ -179,6 +293,7 @@ function updateWithCheckNotExist(query, params, callback) {
          let updateParams = [];
          function selectQueryForUpdate(nextCallback) {
             conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+               logging.logSql(this);
                if (err)
                   return cb(err);
                if (rows.length !== 1){
@@ -206,6 +321,7 @@ function updateWithCheckNotExist(query, params, callback) {
          //Create update function for async.waterfall.
          function updateQueryAfterSelect(updateParams, nextCallback) {
             conn.query(query.updateQuery, updateParams, function (err, rows) {
+               logging.logSql(this);
                if (err || rows.affectedRows !== 1)
                   return nextCallback(err);
                nextCallback(null, updateParams);
@@ -224,7 +340,7 @@ function updateWithCheckNotExist(query, params, callback) {
 
       function lastCallback(err, result) {
          if (err) {
-            if (err.status = 400) {
+            if (err.status === 405) {
                return callback(err, result.one);
             } else {
                return callback(err);
@@ -259,6 +375,7 @@ function makeQueryThenDo(queryParts, paramParts, callback) {
          if (err)
             return callback(err);
          conn.query(query, params, function (err, rows, fields) {
+            logging.logSql(this);
             conn.release();
             if (err)
                return callback(err);
@@ -278,6 +395,7 @@ function updateWithCheck(query, params, checkFn, callback) {
       let updateParams = [];
       function selectQueryForUpdate(nextCallback) {
          conn.query(query.selectQuery, params.selectParams, function (err, rows) {
+            logging.logSql(this);
             if (err)
                return nextCallback(err);
             if (rows.length !== 1){
@@ -312,6 +430,7 @@ function updateWithCheck(query, params, checkFn, callback) {
       //Create update function for async.waterfall.
       function updateQueryAfterSelect(updateParams, nextCallback) {
          conn.query(query.updateQuery, updateParams, function (err, rows) {
+            logging.logSql(this);
             if (err || rows.affectedRows !== 1)
                return nextCallback(err);
             nextCallback(null, updateParams);
@@ -330,11 +449,119 @@ function updateWithCheck(query, params, checkFn, callback) {
 }
 
 
-module.exports.insertQueryFunction = insertQueryFunction;
+/**send independent queries then do process. do transactions at last. // It doesn't condiered if queries['somthing'] has own properties.
+ * level 1 properties name must be same.
+ * @param queries = {check: {check1: ?, check2: ?....}, task: {task1: ?, task2: ?....}}
+ * @param paramas = {check: {check1: ?, check2: ?....},, task: {task1: ?, task2: ?....}}
+ * @param processFn = {check1: ?, check2: ?....}
+ * above params can contain object as check1...
+ * @param callback
+ */
+function doIndependentQueriesThenDoTransactions(queries, params, processFn, callback) {
+
+   dbPool.getConnection(function (err, conn) {
+      if (err)
+         return callback(err);
+      // 1 create first function of async.series for checks
+      function doIndependentQueries(seriesCallback) {
+         let resultOne = 1;
+         // 1-1 create async.each for check for each check queries
+         function independentIterate(value, key, eachOfCallback) {
+            conn.query(value, params.independent[key], function (err, rows, fields) {
+               if (err)
+                  return eachOfCallback(err);
+               // 1-3 trim with processFn
+               if (processFn && processFn.independent && processFn.independent[key]){
+                  processFn.independent[key](rows, fields, function (err) {
+                     if (err)
+                        return eachOfCallback(err);
+                     eachOfCallback(null);
+                  });
+               } else {
+                  eachOfCallback(null);
+               }
+            });
+         }
+         function eachOfCallback(err) {
+            if (err)
+               return seriesCallback(err);
+            seriesCallback(null, 1);
+         }
+         async.eachOf(queries.independent, independentIterate, eachOfCallback);
+      }
+      // 2 create second function of async.series to send queries
+      function doTransactions(seriesCallback) {
+         conn.beginTransaction(function (err) {
+            if (err)
+               return seriesCallback(err);
+            let resultTwo = 1;
+            function transactionIterate(value, key, eachOfCallback) {
+               conn.query(value, params.transaction[key], function (err, rows, fields) {
+                  if (err) {
+                     eachOfCallback(err);
+                  }
+                  if (processFn && processFn.transaction && processFn.transaction[key]){
+                     processFn.transaction[key](rows, fields, function (err) {
+                        if (err)
+                           return eachOfCallback(err);
+                        eachOfCallback(null);
+                     });
+                  } else {
+                     eachOfCallback(null);
+                  }
+               })
+            }
+            function eachOfCallback(err) {
+               if (err)
+                  return seriesCallback(err);
+               seriesCallback(null, resultTwo);
+            }
+            async.eachOf(queries.transaction, transactionIterate, eachOfCallback);
+         });
+      }
+      // 3 create callback of async.series to trim before send out by callback
+      function seriesCallback(err, result) {
+         if (err) {
+            if (result.one) {
+               conn.rollback(function () {
+                  conn.release();
+                  return callback(err);
+               });
+            } else {
+               conn.release();
+               return callback(err);
+            }
+         } else {
+            conn.commit(function (err) {
+               if (err) {
+                  conn.rollback(function () {
+                     conn.release();
+                     return callback(err);
+                  });
+               } else {
+                  if (processFn.resultFn) {
+                     processFn.resultFn(result, function (cbResult) {
+                        return callback(null, cbResult);
+                     });
+                  } else {
+                     return callback(null);
+                  }
+               }
+            });
+         }
+      }
+      async.series({ one: doIndependentQueries, two: doTransactions }, seriesCallback);
+   });
+}
+
+
+module.exports.eachOfQueryFunction = eachOfQueryFunction;
 module.exports.selectQueryFunction = selectQueryFunction;
 module.exports.updateQueryFunction = updateQueryFunction;
 module.exports.deleteQueryFunction = deleteQueryFunction;
+module.exports.insertIfNotExistOrUpdate=insertIfNotExistOrUpdate;
 module.exports.insertWithCheckNotExist = insertWithCheckNotExist;
 module.exports.updateWithCheckNotExist = updateWithCheckNotExist;
 module.exports.updateWithCheck = updateWithCheck;
 module.exports.makeQueryThenDo = makeQueryThenDo;
+module.exports.doIndependentQueriesThenDoTransactions = doIndependentQueriesThenDoTransactions;

@@ -10,6 +10,7 @@ var S3 = new AWS.S3(s3Config);
 
 const s3Bucket = process.env.S3_BUCKET;
 const aes_key = process.env.AES_KEY;
+const defaultDogImgUrl = process.env.DEFAULT_DOG_PROFILE_IMG_URL;
 
 
 function insertQueryFunction(insertQuery, insertParams, callback) {
@@ -18,10 +19,14 @@ function insertQueryFunction(insertQuery, insertParams, callback) {
          return callback(err);
       conn.query(insertQuery, insertParams, function (err, result) {
          conn.release();
-         if (err || !result) {
+         if (err) {
             return callback(err);
+         } else if (!result) {
+            err = new Error();
+            return callback(err);
+         } else {
+            callback(null, result)
          }
-         callback(null, result)
       });
    });
 }
@@ -136,22 +141,28 @@ function insertDogProfile (reqDog, callback) {
          // 중복된 반려견 이름이 존재할 경우에 대한 err 처리
          if (err.code === "ER_DUP_ENTRY") {
             err = new Error("중복된 이름의 반려견이 존재합니다.");
-            err.status = 400;
-            S3.deleteObject({
-               Bucket: s3Bucket,
-               Key: reqDog.dog_profile_img_url.split('com/')[1]
-            }, function (error) {
-               if (error)
-                  logger.log('info', 'Failed: delete S3 object in dog_profile:', reqUser.prev_profile_img_url);
+            err.status = 406;
+            if (reqDog.dog_profile_img_url) {
+               S3.deleteObject({
+                  Bucket: s3Bucket,
+                  Key: reqDog.dog_profile_img_url.split('com/')[1]
+               }, function (error) {
+                  if (error)
+                     logger.log('info', 'Failed: delete S3 object in dog_profile:', reqUser.prev_profile_img_url);
+                  return callback(err);
+               });
+            } else {
                return callback(err);
-            });
+            }
          } else {
             err.message = "반려견 정보 등록에 실패했습니다.";
             return callback(err);
          }
       } else if (result.affectedRows !==1) {
-            logger.log('info', 'Unexpected insert DogProfile error :  %j', reqDog);
-            return callback(err);
+         err = new Error();
+         err.message = "반려견 정보 등록에 실패했습니다.";
+         logger.log('info', 'Unexpected insert DogProfile error :  %j', reqDog);
+         return callback(err);
       } else {
          //err 가 없을경우 reqDog 과 result를 반환
          reqDog.result = result;
@@ -163,15 +174,20 @@ function insertDogProfile (reqDog, callback) {
 function selectUserDogsProfile(reqUserId, callback) {
    // 1. create select_dog_profile query and select_dog_params
    let select_dog_profile = 'select user_id, cast(aes_decrypt(dog_name, unhex(sha2(?, 512))) as char) as dog_name, ' +
-                            'dog_gender, dog_age, dog_type, dog_weight, dog_profile_img_url, ' +
+                            'dog_gender, dog_age, dog_type, dog_weight, ifnull(dog_profile_img_url, ?) as dog_profile_img_url, ' +
                             'dog_neutralized, dog_characters, dog_significants ' +
                             'from pet_dogs ' +
                             'where user_id = ?';
-   let params_for_select_dog_profile = [aes_key, reqUserId];
+   let params_for_select_dog_profile = [aes_key, defaultDogImgUrl, reqUserId];
    // 2. Use selectQueryFunction with query and params of 1
    selectQueryFunction(select_dog_profile, params_for_select_dog_profile, function (err, rows) {
       if (err)
          return callback(err);
+      if (!rows[0]){
+         err = new Error("Not Found");
+         err.status = 404;
+         return callback(err);
+      }
       callback(null, rows);
    });
    // 3. handle error and call the callback
@@ -180,16 +196,16 @@ function selectUserDogsProfile(reqUserId, callback) {
 
 function selectDogProfile(reqDog, callback) {
    let selectQuery = 'select cast(aes_decrypt(dog_name, unhex(sha2(?, 512))) as char) as dog_name, ' +
-                     'dog_gender, dog_age, dog_type, dog_weight, dog_profile_img_url, ' +
+                     'dog_gender, dog_age, dog_type, dog_weight, dog_neutralized, ifnull(dog_profile_img_url, ?) as dog_profile_img_url, ' +
                      'dog_neutralized, dog_characters, dog_significants ' +
                      'from pet_dogs ' +
                     'where user_id = ? and dog_name = aes_encrypt(?, unhex(sha2(?, 512)))';
-   let  selectParams = [aes_key, reqDog.user_id, reqDog.dog_name, aes_key];
+   let  selectParams = [aes_key, defaultDogImgUrl, reqDog.user_id, reqDog.dog_name, aes_key];
 
-   selectQueryFunction(selectQuery, selectParams, function (err, row) {
+   selectQueryFunction(selectQuery, selectParams, function (err, roww) {
       if (err)
          return next(err);
-      callback(null, row);
+      callback(null, roww);
    })
 
 }
@@ -204,7 +220,8 @@ function updateDogProfile(reqDog, callback) {
                    'where user_id = ? and dog_name = aes_encrypt(?, unhex(sha2(?, 512)))',
       updateQuery: 'update pet_dogs ' +
                    'set dog_name = aes_encrypt(?, unhex(sha2(?, 512))), ' +
-                   'dog_gender = ?, dog_age = ?, dog_type = ?, dog_weight = ?, dog_profile_img_url = ?, dog_neutralized = ?, ' +                   'dog_characters =  ?, dog_significants = ? ' +
+                   'dog_gender = ?, dog_age = ?, dog_type = ?, dog_weight = ?, dog_profile_img_url = ?, dog_neutralized = ?, ' +
+                   'dog_characters =  ?, dog_significants = ? ' +
                    'where user_id = ? and dog_name = aes_encrypt(?, unhex(sha2(?, 512)))'
    };
    let params = {
@@ -222,25 +239,27 @@ function updateDogProfile(reqDog, callback) {
    // 2. updateQuery
    updateQueryFunction(query, params, function (err) {
       if (err) {
-         if (err.status === 400) {
+         if (err.status === 405) {
             err.message = "해당 반려견이 존재 하지 않습니다."
-         }
-         if (err.code = "ER_DUP_ENTRY") {
-            err.status = 400;
+         } else if (err.code === "ER_DUP_ENTRY") {
+            err.status = 406;
             err.message = "중복된 반려견이 존재 합니다."
          }
-         S3.deleteObject({
-            Bucket: s3Bucket,
-            Key: params.updateParams
-               .dog_profile_img_url.split('com/')[1]
-         }, function (error) {
-            if (error)
-               logger.log('info', 'Failed: delete S3 object in dog_profile:', params.updateParams.dog_profile_img_url);
+         if (params.updateParams.dog_profile_img_url) {
+            S3.deleteObject({
+               Bucket: s3Bucket,
+               Key: params.updateParams
+                  .dog_profile_img_url.split('com/')[1]
+            }, function (error) {
+               if (error)
+                  logger.log('info', 'Failed: delete S3 object in dog_profile:', params.updateParams.dog_profile_img_url);
+               return callback(err);
+            });
+         } else {
             return callback(err);
-         });
-
+         }
       } else {
-         if (reqDog.dog_profile_img_url) {
+         if (params.prevParams.dog_profile_img_url) {
             S3.deleteObject({
                Bucket: s3Bucket,
                Key: params.prevParams.dog_profile_img_url.split('com/')[1]
@@ -249,8 +268,9 @@ function updateDogProfile(reqDog, callback) {
                   logger.log('info', 'Failed: delete S3 object in dog_profile:', params.prevParams.dog_profile_img_url);
                return callback(null, params.updateParams);
             });
+         } else {
+            return callback(null, params.updateParams);
          }
-         return callback(null, params.updateParams);
       }
    });
 
@@ -277,22 +297,21 @@ function deleteDogProfile(reqDog, callback) {
 
    deleteQueryFunction(query, params, function (err) {
       if (err) {
-         err = new Error("반려견 정보 삭제에 실패했습니다.");
+         err.message = "반려견 정보 삭제에 실패했습니다.";
          return callback(err);
-      } else {
+      } else if (params.prevParams && params.prevParams.dog_profile_img_url) {
          S3.deleteObject({
             Bucket: s3Bucket,
             Key: params.prevParams.dog_profile_img_url.split('.com/')[1]
          }, function (err) {
             if (err)
                logger.log('info', 'Failed: delete S3 object in dog_profile:', params.prevParams.dog_profile_img_url);
-            callback(null, params.prevParams);
+            callback(null);
          });
+      } else {
+         callback(null);
       }
-
-      callback(null, row);
    });
-
 }
 
 module.exports.insertDogProfile = insertDogProfile;

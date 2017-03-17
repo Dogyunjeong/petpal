@@ -6,7 +6,7 @@ var router = express.Router();
 
 var s3Config = require('../config/aws_s3');
 var User = require('../models/user');
-var incomingCheck = require('../models/incomingCheck');
+var logging = require('../models/logging');
 
 const listLimit = process.env.TEXT_LIMIT;
 
@@ -20,6 +20,8 @@ var upload = multer({
    storage: multerS3({
       s3: S3,
       bucket: 'petpaldidimdol',
+      acl: 'public-read',
+      contentType: multerS3.AUTO_CONTENT_TYPE,
       metadata: function (req, file, cb) {
          cb(null, {fieldName: file.fieldname});
       },
@@ -29,24 +31,24 @@ var upload = multer({
    })
 });
 
-router.post('/', upload.single('profile_image'), incomingCheck, function(req, res, next) {
+router.post('/', upload.single('profile_img'), logging.incomingCheck, function(req, res, next) {
    var resultMsg = "회원 정보 등록을 성공했습니다.";
    var errMsg = "회원 정보 등록을 실패했습니다.";
 
-   if (!req.body.age || !req.body.gender) {
+   if (!req.body.age || !req.body.gender || !req.body.user_name) {
       var  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
    if (!req.file)
-      req.file = {location: null}
+      req.file = {location: null};
    var reqUser = {
       user_id: req.user.user_id,
       mobile: req.body.mobile || null,
       age: req.body.age,
       gender: req.body.gender,
       address: req.body.address || null,
-      profile_img_url: req.file.location || null,
+      profile_img_url:  (req.file && req.file.location) || req.file.location || null,
       user_name: req.body.user_name || null
    };
    User.updateUserProfile(reqUser, function (err, user) {
@@ -55,19 +57,13 @@ router.post('/', upload.single('profile_image'), incomingCheck, function(req, re
          return next(err);
       } else {
          res.json({
-            result: {
-               message: resultMsg,
-               data: user
-            }
+            result: resultMsg
          })
       }
    });
 });
 
-router.put('/', upload.single('profile_image'), function(req, res, next) {
-   var resultMsg = "회원 정보 변경을 성공했습니다.";
-   var errMsg = "회원 정보 변경을 실패했습니다.";
-
+router.put('/', upload.single('profile_img'), function(req, res, next) {
    if (!req.file)
       req.file ={location: null};
 
@@ -77,19 +73,16 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
       age: req.body.age || null,
       gender: req.body.gender || null,
       address: req.body.address || null,
-      profile_img_url: req.file.location || null,
+      profile_img_url:  (req.file && req.file.location) || req.file.location || null,
       user_name: req.body.user_name || null
    };
    User.updateUserProfile(reqUser, function (err, user) {
       if (err) {
-         err.message = errMsg;
+         err.message = "회원 정보 변경을 실패했습니다.";
          return next(err);
       } else {
          res.json({
-            result: {
-               message: resultMsg,
-               data: user
-            }
+            result: "회원 정보 변경을 성공했습니다."
          })
       }
    });
@@ -98,23 +91,30 @@ router.put('/', upload.single('profile_image'), function(req, res, next) {
 router.get('/me', function(req, res, next) {
 
    User.selectUserbyUserId(req.user.user_id, function (err, user) {
-      if (err || !user) {
-         err.message("자신의 프로필을 불러오는데 실패했습니다.");
+      if (err) {
          return next(err);
       } else {
-         res.json(user);
+         res.json({
+            result: {
+               data:user
+            }
+         });
       }
    });
 
 });
 
 router.get('/:user_id', function(req, res, next) {
+
    User.selectUserbyUserId(req.params.user_id, function (err, user) {
-      if (err || !user) {
-         err.message("사용자의 프로필을 불러오는데 실패했습니다.");
+      if (err) {
          return next(err);
       } else {
-         res.json(user);
+         res.json({
+            result: {
+               data: user
+            }
+         });
       }
    });
 });
@@ -122,7 +122,7 @@ router.get('/:user_id', function(req, res, next) {
 router.get('/points/received', function(req, res, next) {
    let reqData = {
       user_id: req.user.user_id,
-      reqPage: + req.query.p || 0,
+      reqPage: + req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * listLimit || 0,
          latter: +listLimit
@@ -143,7 +143,7 @@ router.get('/points/received', function(req, res, next) {
 router.get('/points/used', function(req, res, next) {
    let reqData = {
       user_id: req.user.user_id,
-      reqPage: + req.query.p || 0,
+      reqPage: + req.query.p || 1,
       limit: {
          former: (req.query.p - 1) * listLimit || 0,
          latter: +listLimit
@@ -161,10 +161,13 @@ router.get('/points/used', function(req, res, next) {
    });
 });
 
-
-
 router.post('/img_list', function (req, res, next) {
-   let userList = JSON.parse(req.body.user_list);
+   if (!req.body.img_list || !req.body.img_list[0]) {
+      var  err = new Error('필수 정보가 잘 못 되었습니다.');
+      err.status = 400;
+      return next(400);
+   }
+   let userList = req.body.user_list;
 
    User.selectUserImgList(userList, function (err, rows) {
       if (err) {
