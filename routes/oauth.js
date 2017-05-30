@@ -1,15 +1,15 @@
-var express = require ('express');
-var router = express.Router();
-var passport = require('passport');
+let express = require ('express');
+let router = express.Router();
+let passport = require('passport');
 
-var KakaoStrategy = require('passport-kakao').Strategy;
-var KakaoTokenStrategy = require('passport-kakao-token').Strategy;
+let KakaoStrategy = require('passport-kakao').Strategy;
+let KakaoTokenStrategy = require('passport-kakao-token').Strategy;
 
 
-var logger = require('../common/logger');
-var dummy = require('../models/dummy');
-var kakaoConfig = require('../config/kakao_oauth');
-var Oauth = require('../models/oauth');
+let logger = require('../common/logger');
+let dummy = require('../models/dummy');
+let kakaoConfig = require('../config/kakao_oauth');
+let Oauth = require('../models/oauth');
 
 
 
@@ -62,7 +62,7 @@ passport.use( new KakaoTokenStrategy({
    })
 );
 
-router.get("/kakaotalk/login", passport.authenticate('kakao',{state: "myStateValue"}));
+router.get("/kakaotalk/login", passport.authenticate('kakao', { state: "myStateValue" }));
 
 // need to access this way https://localhost/oauth/kakaotalk/token?access_token=JNVDeylwsvfOHpHEf-LrXaCs4HmiW9CAjzqsago8BRIAAAFabn0kcg
 //  https://localhost/oauth/kakaotalk/token?access_token=375028451
@@ -106,7 +106,7 @@ router.get('/kakaotalk/token', passport.authenticate('kakao-token'), function(re
 });
 
 
-router.get('/logout', function (req,res,next) {
+router.get('/logout', function (req, res, next) {
    req.logout();
    res.json({
       result: "로그아웃에 성공하였습니다."

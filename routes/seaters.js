@@ -1,7 +1,7 @@
-var express = require('express');
-var router = express.Router();
-var dummy = require('../models/dummy');
-var Seater = require('../models/seater');
+let express = require('express');
+let router = express.Router();
+let Validator = require('../common/validator');
+let Seater = require('../models/seater');
 
 const searchDistance = process.env.SEARCH_DISTANCE;
 const seaterSearchLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
@@ -9,19 +9,25 @@ const seaterSearchLimit = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 router.post('/', function (req, res, next) {
    // check required data is coming then make object to send
    if (!req.body.stroll_pos_lat || !req.body.stroll_pos_long || !req.body.from_time || ! req.body.to_time) {
-      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      let err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
    }
+   Validator.reserveTimeValidator(req.body.from_time, req.body.to_time, function (err) {
+      if (err) return next(err);
+   });
+   Validator.positionValidator(req.body.stroll_pos_lat, req.body.stroll_pos_long, function (err) {
+      if (err) return next(err);
+   });
    let reqSeater = {
       stroll_user_id: req.user.user_id,
       stroll_pos_lat: +req.body.stroll_pos_lat,
       stroll_pos_long: +req.body.stroll_pos_long,
       from_time: req.body.from_time,
       to_time: req.body.to_time,
-      dog_weight: isNaN(req.query.dog_weight) ? (req.query.dog_weight === '무관' ? null : req.query.dog_weight ) : + req.query.dog_weight || null,
-      dog_gender: isNaN(req.query.dog_gender) ? (req.query.dog_gender === '무관' ? null : req.query.dog_gender ) : + req.query.dog_gender || null,
-      dog_neutralized: isNaN(req.query.dog_neutralized) ?  (req.query.dog_neutralized === '무관' ? null : req.query.dog_neutralized ) : + req.query.dog_neutralized || null,
+      dog_weight: isNaN(req.body.dog_weight) ? (req.body.dog_weight === '무관' ? null : req.body.dog_weight ) : + req.body.dog_weight || null,
+      dog_gender: isNaN(req.body.dog_gender) ? (req.body.dog_gender === '무관' ? null : req.body.dog_gender ) : + req.body.dog_gender || null,
+      dog_neutralized: isNaN(req.body.dog_neutralized) ?  (req.body.dog_neutralized === '무관' ? null : req.body.dog_neutralized ) : + req.body.dog_neutralized || null,
    };
 
    Seater.insertSeater(reqSeater, function (err) {
@@ -89,9 +95,9 @@ router.put('/:stroll_id', function (req, res, next) {
       stroll_pos_long: req.body.stroll_pos_long || null,
       from_time: req.body.from_time || null,
       to_time: req.body.to_time || null,
-      dog_weight: req.body.dog_weight || null,
-      dog_gender: req.body.dog_gender || null,
-      dog_neutralized: req.body.dog_neutralized || null
+      dog_weight: isNaN(req.body.dog_weight) ? (req.body.dog_weight === '무관' ? null : req.body.dog_weight ) : + req.body.dog_weight || null,
+      dog_gender: isNaN(req.body.dog_gender) ? (req.body.dog_gender === '무관' ? null : req.body.dog_gender ) : + req.body.dog_gender || null,
+      dog_neutralized: isNaN(req.body.dog_neutralized) ?  (req.body.dog_neutralized === '무관' ? null : req.body.dog_neutralized ) : + req.body.dog_neutralized || null,
    };
 
    Seater.updateSeater(reqSeater, function (err, row) {
@@ -116,13 +122,15 @@ router.delete('/:stroll_id', function (req, res, next) {
          result: '시터 정보 삭제에 성공하였습니다.'
       });
    });
-
-
 });
 
+//Search filter conditions coming as query string.
 router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
-
+   Validator.positionValidator(req.body.stroll_pos_lat, req.body.stroll_pos_long, function (err) {
+      if (err) return next(err);
+   });
    let searchData = {
+      req_user_id: req.user.user_id,
       stroll_pos_lat: req.params.pos_lat,
       stroll_pos_long: req.params.pos_long,
       from_time: req.query.from_time || new Date(),

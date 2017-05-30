@@ -353,10 +353,18 @@ function updateWithCheckNotExist(query, params, callback) {
    });
 }
 
+/**
+ * This function is to make dynamic query based on requested filter conditions
+ * When queryParts.partsForCombine['something'], 'something' must be in the paramParts.partsForCombine object.
+ * @param queryParts
+ * @param paramParts
+ * @param callback
+ */
 function makeQueryThenDo(queryParts, paramParts, callback) {
    let query = queryParts.start;
    let params = paramParts.start;
 
+   //Combine query parts after start query
    function iterateFn(value, key, cb) {
       if (value) {
          query += queryParts.partsForCombine[key] || queryParts.partsForCombine.repeated;
@@ -366,6 +374,7 @@ function makeQueryThenDo(queryParts, paramParts, callback) {
          cb()
       }
    }
+   //Combine end part to make complete query
    function lastCb(err) {
       if (err)
          return callback(err);
@@ -383,6 +392,7 @@ function makeQueryThenDo(queryParts, paramParts, callback) {
          });
       });
    }
+
    async.eachOf(paramParts.partsForCombine, iterateFn, lastCb )
 }
 

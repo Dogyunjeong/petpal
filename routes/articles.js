@@ -1,43 +1,20 @@
-var express = require('express');
-var router = express.Router();
-var dummy = require('../models/dummy');
-var multer = require('multer');
-var multerS3 = require('multer-s3');
-var AWS = require('aws-sdk');
+let express = require('express');
+let logger = require('../common/logger');
+let incomingCheck = require('../models/incomingCheck');
+let Article = require('../models/article');
+let upload = require('../common/uploadS3')('article_img/');
 
-var s3Config = require('../config/aws_s3');
-var logger = require('../common/logger');
-var incomingCheck = require('../models/incomingCheck');
-var Article = require('../models/article');
+let router = express.Router();
 
 const searchDistance = process.env.SEARCH_DISTANCE;
+const articleSearchLimit = process.env.ARTICLE_SERACH_LIMIT;
+const feedImgListLimit = process.env.FEED_IMG_LIST_LIMIT;
 
-var S3 = new AWS.S3({
-   region : s3Config.region,
-   accessKeyId: s3Config.accessKeyId,
-   secretAccessKey: s3Config.secretAccessKey
-});
-var upload = multer({
-   storage: multerS3({
-      s3: S3,
-      bucket: 'petpaldidimdol',
-      acl: 'public-read',
-      contentType: multerS3.AUTO_CONTENT_TYPE,
-      metadata: function (req, file, cb) {
-         cb(null, {fieldName: file.fieldname});
-      },
-      key: function (req, file, cb) {
-         cb(null, 'article_img/' + file.originalname + Date.now().toString())
-      }
-   })
-});
 
-const articleSerachLimit = process.env.ARTICLE_SERACH_LIMIT;
-const feedImgListLimt = process.env.FEED_IMG_LIST_LIMIT;
-
-router.post('/', upload.single('image'), incomingCheck, function(req, res, next) {
+//insert data into articles table. it can accept only one image.
+router.post('/', upload.single('image'), incomingCheck, function (req, res, next) {
    if (!req.file || !req.body.content || !req.body.pos_lat || !req.body.pos_long) {
-      var  err = new Error("필수 데이터가 오지 않았습니다.");
+      let  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
@@ -59,10 +36,29 @@ router.post('/', upload.single('image'), incomingCheck, function(req, res, next)
    });
 });
 
-router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
+//delete post from articles table
+router.delete('/:art_id', function (req, res, next) {
+   let reqData = {
+       art_id: parseInt(req.params.art_id, 10) || null,
+       user_id: req.user.user_id
+   };
+   Article.deleteArticle(reqData, function (err, result) {
+      if (err) {
+         err.message = "게시글 삭제에 실패하였습니다.";
+         next(err);
+      } else {
+         res.json({
+            result: "“게시글 삭제에 성공하였습니다."
+         });
+      }
+   })
+});
+
+//Search articles near the user position
+router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
 
    if (!req.params.pos_lat || !req.params.pos_long) {
-      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      let err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
    }
@@ -74,8 +70,8 @@ router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
       distance: req.query.distance || searchDistance,
       p: req.query.p || 1,
       limit: {
-         former: (req.query.p - 1) * articleSerachLimit || 0,
-         latter: + articleSerachLimit
+         former: (req.query.p - 1) * articleSearchLimit || 0,
+         latter: + articleSearchLimit
       }
    };
 
@@ -92,10 +88,10 @@ router.get('/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
    });
 });
 
-router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) {
+router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function (req, res, next) {
 
    if (!req.params.pos_lat || !req.params.pos_long) {
-      var err = new Error('필수 정보가 입력되지 않았습니다.');
+      let err = new Error('필수 정보가 입력되지 않았습니다.');
       err.status = 400;
       return next(err);
    }
@@ -107,8 +103,8 @@ router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) 
       distance: req.query.distance || searchDistance,
       p: req.query.p || 1,
       limit: {
-         former: (req.query.p - 1) * articleSerachLimit || 0,
-         latter: + articleSerachLimit
+         former: (req.query.p - 1) * articleSearchLimit || 0,
+         latter: + articleSearchLimit
       }
    };
 
@@ -124,13 +120,13 @@ router.get('/map/pos_lat/:pos_lat/pos_long/:pos_long', function(req, res, next) 
    });
 });
 
-router.get('/users/:user_id', function(req, res, next) {
+router.get('/users/:user_id', function (req, res, next) {
    let reqData = {
       user_id: req.params.user_id,
       page: req.query.p || 1,
       limit: {
-         former: (req.query.p - 1) * feedImgListLimt || 0,
-         latter: + feedImgListLimt
+         former: (req.query.p - 1) * feedImgListLimit || 0,
+         latter: + feedImgListLimit
       }
    };
 
@@ -146,7 +142,7 @@ router.get('/users/:user_id', function(req, res, next) {
    });
 });
 
-router.get('/:art_id/details', function(req, res, next) {
+router.get('/:art_id/details', function (req, res, next) {
    let reqData = {
       art_id: req.params.art_id,
       user_id: req.user.user_id
@@ -162,7 +158,7 @@ router.get('/:art_id/details', function(req, res, next) {
    });
 });
 
-router.get('/:art_id/like', function(req, res, next) {
+router.get('/:art_id/like', function (req, res, next) {
    let reqData = {
       art_id: req.params.art_id,
       user_id: req.user.user_id
@@ -176,7 +172,7 @@ router.get('/:art_id/like', function(req, res, next) {
    });
 });
 
-router.get('/:art_id/unlike', function(req, res, next) {
+router.get('/:art_id/unlike', function (req, res, next) {
    let reqData = {
       art_id: req.params.art_id,
       user_id: req.user.user_id
@@ -189,7 +185,7 @@ router.get('/:art_id/unlike', function(req, res, next) {
       });
    });
 });
-
+//delete Article what requested user posted
 
 
 

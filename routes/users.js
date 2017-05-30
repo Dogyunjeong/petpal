@@ -1,48 +1,25 @@
-var express = require('express');
-var multer = require('multer');
-var multerS3 = require('multer-s3');
-var AWS = require('aws-sdk');
-var router = express.Router();
+let express = require('express');
 
-var s3Config = require('../config/aws_s3');
-var User = require('../models/user');
-var logging = require('../models/logging');
+let router = express.Router();
+
+let User = require('../models/user');
+let Logging = require('../models/logging');
+let upload = require('../common/uploadS3')('user_profile_img/');
 
 const listLimit = process.env.TEXT_LIMIT;
 
-var S3 = new AWS.S3({
-   region : s3Config.region,
-   accessKeyId: s3Config.accessKeyId,
-   secretAccessKey: s3Config.secretAccessKey
-});
-
-var upload = multer({
-   storage: multerS3({
-      s3: S3,
-      bucket: 'petpaldidimdol',
-      acl: 'public-read',
-      contentType: multerS3.AUTO_CONTENT_TYPE,
-      metadata: function (req, file, cb) {
-         cb(null, {fieldName: file.fieldname});
-      },
-      key: function (req, file, cb) {
-         cb(null, 'user_profile_img/' + file.originalname + Date.now().toString())
-      }
-   })
-});
-
-router.post('/', upload.single('profile_img'), logging.incomingCheck, function(req, res, next) {
-   var resultMsg = "회원 정보 등록을 성공했습니다.";
-   var errMsg = "회원 정보 등록을 실패했습니다.";
+router.post('/', upload.single('profile_img'), Logging.incomingCheck, function(req, res, next) {
+   let resultMsg = "회원 정보 등록을 성공했습니다.";
+   let errMsg = "회원 정보 등록을 실패했습니다.";
 
    if (!req.body.age || !req.body.gender || !req.body.user_name) {
-      var  err = new Error("필수 데이터가 오지 않았습니다.");
+      let  err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
    if (!req.file)
       req.file = {location: null};
-   var reqUser = {
+   let reqUser = {
       user_id: req.user.user_id,
       mobile: req.body.mobile || null,
       age: req.body.age,
@@ -67,7 +44,7 @@ router.put('/', upload.single('profile_img'), function(req, res, next) {
    if (!req.file)
       req.file ={location: null};
 
-   var reqUser = {
+   let reqUser = {
       user_id: req.user.user_id,
       mobile: req.body.mobile || null,
       age: req.body.age || null,
@@ -163,7 +140,7 @@ router.get('/points/used', function(req, res, next) {
 
 router.post('/img_list', function (req, res, next) {
    if (!req.body.img_list || !req.body.img_list[0]) {
-      var  err = new Error('필수 정보가 잘 못 되었습니다.');
+      let  err = new Error('필수 정보가 잘 못 되었습니다.');
       err.status = 400;
       return next(400);
    }

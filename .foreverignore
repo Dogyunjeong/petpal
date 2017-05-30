@@ -1,0 +1,8 @@
+node_modeules/*
+logs/*
+**/.git/**
+**/node_modules/**
+**/logs/**
+**/public/**
+**/uploads/**
+*ignore*

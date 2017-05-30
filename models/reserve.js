@@ -1,9 +1,9 @@
-var QueryFn = require('./queryFunction');
+let QueryFn = require('./queryFunction');
 const aes_key = process.env.AES_KEY;
 const defaultUserImgUrl = process.env.DEFAULT_USER_PROFILE_IMG_URL;
 
 function reserveStroll(reserveData, callback) {
-   //prepare query and params to check and the insert
+   //prepare query and params to check and then update and insert
    let query = {
       independent: {
          check: 'select case when points >= 10 then us.user_id else null end as pointCheck, st.user_id as strollCheck, rs.user_id as reservationCheck, stroll_user_id ' +
@@ -38,7 +38,7 @@ function reserveStroll(reserveData, callback) {
                   reserveData.reserve_dog_name, aes_key, reserveData.from_time, reserveData.to_time]
       }
    };
-   processFn = {
+   let processFn = {
       independent: {
          check: function(rows, fields, cb) {
             if (rows[0].pointCheck) {
@@ -73,7 +73,6 @@ function reserveStroll(reserveData, callback) {
       }
    };
 
-   //TODO change function
    QueryFn.doIndependentQueriesThenDoTransactions(query, params, processFn, function (err, result) {
       if (err) {
          //if there is overlapped reservation return err with status code 400
@@ -83,6 +82,9 @@ function reserveStroll(reserveData, callback) {
             return callback(err);
          } else {
             switch (err.status) {
+               case 402:
+                  err.message = '산책 요청을 위한 포인트가 부족합니다.';
+                  return callback(err);
                case 406:
                   switch  (err.errno) {
                      case 1001:
@@ -95,9 +97,6 @@ function reserveStroll(reserveData, callback) {
                         err.message = '요청한 산책이 존재하지 않습니다.';
                         return callback(err);
                   }
-               case 402:
-                  err.message = '산책 요청을 위한 포인트가 부족합니다.';
-                  return callback(err);
                default:
                   err.message = '매칭 요청에 실패했습니다.';
                   return callback(err);
@@ -192,9 +191,7 @@ function updateReserveStatus(rsvObj, callback) {
       } else {
          callback(null);
       }
-
    });
-
 }
 
 function cancelReserveStatus(reqObj, callback) {
@@ -226,11 +223,11 @@ function cancelReserveStatus(reqObj, callback) {
       independent: {
          check:   function (rows, fields, cb) {
             if (!rows[0]) {
-               err = new Error();
+               let err = new Error();
                err.status = 404;
             }
             if (rows[0].status === 'Done' || rows[0].status === 'Canceled') {
-               err = new Error();
+               let err = new Error();
                return cb(err);
             } else {
                params.transaction.updateUser = [rows[0].reserve_user_id];
@@ -239,7 +236,6 @@ function cancelReserveStatus(reqObj, callback) {
          }
       }
    };
-
 
    QueryFn.doIndependentQueriesThenDoTransactions(query, params, processFn, function (err) {
       if (err) {

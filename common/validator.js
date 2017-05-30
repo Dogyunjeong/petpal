@@ -3,19 +3,31 @@
  */
 
 //If there is no properties, It will call next();
-function reserveTimeValidator(req, res, next) {
-   if (req.body.from_time && req.body.to_time) {
-      let currTime = new Date();
-      if (currTime < new Date(req.body.from_time) < new Date(req.body.to_time)) {
-         return next();
-      } else {
-         return res.status(400).json({
-            error: "현재 시간은 시작 시간 보다, 시작 시간은 종료 시간보다 빨라야합니다."
-         });
-      }
+function reserveTimeValidator(from_time, to_time, cb) {
+   let currTime = new Date();
+   if (currTime < new Date(from_time) < new Date(to_time)) {
+      return cb();
    } else {
-      return next();
+      let err = new Error('입력된 시간정보가 잘못 되었습니다.');
+      err.status = 400;
+      return cb(err);
    }
 }
+//Check the position values are correct or not
+function positionValidator(pos_lat, pos_long, cb) {
+   if (!pos_lat || !pos_long || ((pos_lat + "").split(".")[1].length !== (pos_long + "").split(".")[1].length)) {
+      let err = new Error('위치정보 값이 잘 못 되었습니다.');
+      err.status = 400;
+      return cb(err);
+   }
+   cb();
+}
+
+// function validateId(req, res, next) {
+//    if (req.params.user_id || req.params.art_id || req.params.) {
+//
+//    }
+// }
 
 module.exports.reserveTimeValidator = reserveTimeValidator;
+module.exports.positionValidator = positionValidator;

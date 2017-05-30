@@ -1,18 +1,20 @@
-var express = require('express');
-var router = express.Router();
-var dummy = require('../models/dummy');
-var Reserve = require('../models/reserve');
-var Validator = require('../common/validator');
+let express = require('express');
+let router = express.Router();
+let Reserve = require('../models/reserve');
+let Validator = require('../common/validator');
 
 const reservationListLimt = process.env.TEXT_WITH_PROFILE_LIST_LIMIT;
 
 //Create reservations after check there is no overlapped reservation and request period is in stroll period
-router.post('/:stroll_id/request', Validator.reserveTimeValidator, function(req, res, next) {
+router.post('/:stroll_id/request', function(req, res, next) {
    if(!req.body.stroll_user_id || !req.body.dog_name  || !req.body.from_time ||!req.body.to_time ) {
-      var err = new Error('필수 정보가 오지 않았습니다.');
+      let err = new Error('필수 정보가 오지 않았습니다.');
       err.status = 400;
       return next(err);
    }
+    Validator.reserveTimeValidator(req.body.from_time, req.body.to_time, function (err) {
+       if (err) return next(err);
+    });
    let reserveData = {
       reserve_user_id: req.user.user_id,
       reserve_dog_name: req.body.dog_name,

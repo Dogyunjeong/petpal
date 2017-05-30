@@ -1,11 +1,7 @@
-// const AWS = require('aws-sdk');
+let dbPool = require('../common/dbPool');
+let logger = require('../common/logger');
+let QueryFn = require('./queryFunction');
 
-// const s3Config = require('../config/aws_s3');
-var dbPool = require('../common/dbPool');
-var logger = require('../common/logger');
-var QueryFn = require('./queryFunction');
-
-// const S3 = new AWS.S3(s3Config);
 
 const aes_key = process.env.AES_KEY;
 const defaultUserImgUrl = process.env.DEFAULT_USER_PROFILE_IMG_URL;
@@ -38,6 +34,13 @@ function insertArticle(reqArticle, callback) {
    });
 }
 
+function deleteArticle(reqData, callback) {
+   let deleteQuery = 'delete from articles where art_id = ? and user_id = ?';
+   let deleteParam = [reqData.art_id, reqData.user_id];
+
+   QueryFn.deleteQueryFunction(deleteQuery, deleteParam, callback);
+}
+
 function selectArticles(reqData, callback) {
    let selectQuery =
       'select art.art_id, art.user_id, date_format(create_time, "%Y-%m-%d %H:%i:%S") as create_time, image_url, content, pos_lat, ' +
@@ -47,7 +50,7 @@ function selectArticles(reqData, callback) {
       '      from articles ' +
       '      where mbrcontains(envelope(linestring(' +
       '            point(round((? + (? / abs(cos(radians(?)) * 111.2))), 6), round((?+(?/111.2)), 6)), ' +
-      '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111.2)), 6)))), art_pos) ' +
+      '            point(round((? - (? / abs(cos(radians(?)) * 111.2))), 6), round((?-(?/111.2)), 6)))), art_pos)' +
       '      order by art_id desc ' +
       '      limit ?, ?) as art ' +
       'left outer join users as u on (art.user_id = u.user_id) ' +
@@ -181,6 +184,7 @@ function unlikeArticleById(reqData, callback) {
 }
 
 module.exports.insertArticle = insertArticle;
+module.exports.deleteArticle = deleteArticle;
 module.exports.selectArticles = selectArticles;
 module.exports.selectArticlesForMap = selectArticlesForMap;
 module.exports.selectArticlesByUserId = selectArticlesByUserId;

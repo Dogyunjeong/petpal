@@ -123,7 +123,7 @@ function findSeaters(searchData, callback) {
                    '6371 * acos(cos(radians(?)) * cos(radians(st_y(stroll_pos))) * cos(radians(st_x(stroll_pos)) - radians(?)) + sin(radians(?)) * sin(radians(st_y(stroll_pos)))) as distance ' +
                    'from strolls ' +
                    'where mbrcontains(envelope(linestring(point((? + (? / abs(cos(radians(?)) * 111.2))), (? + (? /111.2))), ' +
-                   'point(( ? - (? / abs(cos(radians(?)) * 111.2))), (? - (? /111.2))))), stroll_pos) ' +
+                   '      point(( ? - (? / abs(cos(radians(?)) * 111.2))), (? - (? /111.2))))), stroll_pos) ' +
                    'and to_time > ? ',
 
    partsForCombine : {
