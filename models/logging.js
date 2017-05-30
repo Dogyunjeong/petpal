@@ -2,6 +2,8 @@ var logger = require('../common/logger');
 
 function incomingCheck(req, res, next) {
    logger.log('debug', 'access url :  %s %s', req.method, req.originalUrl);
+   if (req.headers['Authentication'])
+      logger.log(level, 'req.headers["content-length"]: %s', req.headers['Authentication']);
    if (Object.keys(req.params).length > 0)
       logger.log('debug', 'params     :  %j', req.params);
    if (Object.keys(req.body).length > 0)

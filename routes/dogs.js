@@ -1,41 +1,20 @@
-var express = require('express');
-var router = express.Router();
-var multer = require('multer');
-var multerS3 = require('multer-s3');
-var AWS = require('aws-sdk');
-var s3Config = require('../config/aws_s3');
-var logger = require('../common/logger');
-var incomingCheck = require('../models/logging').incomingCheck;
+let  express = require('express');
+let  router = express.Router();
+let  multer = require('multer');
+let  logger = require('../common/logger');
+let  incomingCheck = require('../models/logging').incomingCheck;
 
-var Dog = require('../models/dog');
+let  Dog = require('../models/dog');
+let upload = require('../common/uploadS3')('dog_profile_img/');
 
-var S3 = new AWS.S3({
-   region : s3Config.region,
-   accessKeyId: s3Config.accessKeyId,
-   secretAccessKey: s3Config.secretAccessKey
-});
-var upload = multer({
-   storage: multerS3({
-      s3: S3,
-      bucket: 'petpaldidimdol',
-      acl: 'public-read',
-      contentType: multerS3.AUTO_CONTENT_TYPE,
-      metadata: function (req, file, cb) {
-         cb(null, {fieldName: file.fieldname});
-      },
-      key: function (req, file, cb) {
-         cb(null, 'dog_profile_img/' + file.originalname + Date.now().toString())
-      }
-   })
-});
 
 router.post('/', upload.single('dog_profile_img'), incomingCheck, function(req, res, next) {
    if (!req.body.dog_name || !req.body.dog_gender || !req.body.dog_age || !req.body.dog_neutralized) {
-      var  err = new Error("필수 데이터가 오지 않았습니다.");
+      let   err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
-   var reqDog = {
+   let  reqDog = {
       user_id: req.user.user_id,
       dog_profile_img_url:  (req.file && req.file.location) || null,
       dog_name: req.body.dog_name,
@@ -90,12 +69,12 @@ router.get('/:user_id', function(req, res, next) {
 router.put('/:dog_name', upload.single('dog_profile_img'), incomingCheck, function(req, res, next) {
 
    if (!req.params.dog_name) {
-      var  err = new Error("필수 데이터가 오지 않았습니다.");
+      let   err = new Error("필수 데이터가 오지 않았습니다.");
       err.status = 400;
       return next(err);
    }
 
-   var reqDog = {
+   let  reqDog = {
       user_id: req.user.user_id,
       prev_dog_name: req.params.dog_name,
       dog_profile_img_url: (req.file && req.file.location) || null,
